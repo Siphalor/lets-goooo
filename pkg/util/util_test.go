@@ -26,3 +26,14 @@ func TestHash(t *testing.T) {
 	assert.False(t, string(hashA1) == string(hashB1), "hashes of types with identical structures and values are reportedly equal")
 	assert.Panics(t, func() { Hash(typeC{val: "hi"}) }, "struct with no visible fields should not be hashable")
 }
+
+func TestBase64Encode(t *testing.T) {
+	assert.Equal(t, "SGVsbG8gV29ybGQ=", Base64Encode([]byte("Hello World")))
+}
+
+func TestBase64Decode(t *testing.T) {
+	decoded, err := Base64Decode("SGVsbG8gV29ybGQ=")
+	if assert.NoError(t, err, "failed to decode valid base64 string") {
+		assert.Equal(t, "Hello World", string(decoded))
+	}
+}
