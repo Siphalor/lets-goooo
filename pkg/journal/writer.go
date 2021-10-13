@@ -65,7 +65,7 @@ func (writer *Writer) LoadFrom(filePath string) error {
 		case '*': // line indicating new User
 			user, err := ParseUserJournalLine(line[1:])
 			if err != nil {
-				log.Printf("Failed to parse User line %s", line[1:])
+				log.Printf("Failed to parse user line \"%s\"", line[1:])
 			}
 			writer.knownUsers.Add(string(util.Hash(user)))
 		}

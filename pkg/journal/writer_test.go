@@ -1,10 +1,12 @@
 package journal
 
 import (
+	"bytes"
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
+	"log"
 	"os"
 	"path"
 	"sync"
@@ -62,6 +64,21 @@ func TestWriter_LoadFrom(t *testing.T) {
 		}
 		assert.LessOrEqual(t, writer.knownUsers.Size(), len(users), "too many entries in knownUsers")
 	}
+
+	file, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
+	require.NoError(t, err, "internal error: failed to create journal file")
+	_, err = file.WriteString("*invalid line")
+	err = file.Close()
+
+	buf := bytes.Buffer{}
+	reset := LogToBuffer(&buf)
+	defer reset()
+	assert.NoError(t, writer.LoadFrom(filePath), "writer load didn't fail on invalid line")
+	reset()
+	line := buf.String()
+	if assert.NoError(t, err, "failed to parse log for incorrect user line") {
+		assert.Equal(t, "Failed to parse user line \"invalid line\"\n", line, "incorrect error log for user line")
+	}
 }
 
 func TestWriter_UpdateOutput(t *testing.T) {
@@ -82,6 +99,19 @@ func TestWriter_UpdateOutput(t *testing.T) {
 			assert.FileExists(t, writer.output.Name(), "failed to create journal file")
 		}
 	}
+
+	file, _ := os.OpenFile(path.Join(tempDir, "some"), os.O_CREATE|os.O_WRONLY, 0777)
+	_ = file.Close()
+	writer.directory = path.Join(tempDir, "some")
+	assert.Error(t, writer.UpdateOutput(), "failing to create directories should be reported")
+
+	writer.directory = path.Join(tempDir, "exist")
+	_ = os.MkdirAll(GetCurrentJournalPath(writer.directory), 0777)
+	assert.Error(t, writer.UpdateOutput(), "failing to create the journal output should be reported")
+}
+
+func TestWriter_writeLine(t *testing.T) {
+
 }
 
 func CreateTempDir(t *testing.T) (string, func()) {
@@ -89,5 +119,16 @@ func CreateTempDir(t *testing.T) (string, func()) {
 	require.NoError(t, err, "internal error: failed to create temp dir")
 	return tempDir, func() {
 		_ = os.Remove(tempDir)
+	}
+}
+
+func LogToBuffer(buffer *bytes.Buffer) func() {
+	log.SetOutput(buffer)
+	flags := log.Flags()
+	log.SetFlags(0)
+
+	return func() {
+		log.SetOutput(os.Stderr)
+		log.SetFlags(flags)
 	}
 }
