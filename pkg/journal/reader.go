@@ -14,6 +14,7 @@ type Journal struct {
 	events []Event
 }
 
+// ReadJournal reads in a Journal from a journal file.
 func ReadJournal(filepath string) (Journal, error) {
 	file, err := os.OpenFile(filepath, os.O_RDONLY, 0777)
 	if err != nil {
@@ -44,6 +45,7 @@ func ReadJournal(filepath string) (Journal, error) {
 	return journal, nil
 }
 
+// GetUsers provides a way to iterate over all known users.
 func (journal *Journal) GetUsers() <-chan *User {
 	out := make(chan *User)
 
@@ -56,6 +58,7 @@ func (journal *Journal) GetUsers() <-chan *User {
 	return out
 }
 
+// GetEvents yields all events in the journal.
 func (journal *Journal) GetEvents() []Event {
 	return journal.events
 }
