@@ -88,14 +88,14 @@ func TestParseEventJournalEntry(t *testing.T) {
 		data      string
 		message   string
 	}{
-		{LOGIN, ".\ti0\tTST", "parsing invalid base64 hash should fail"},
-		{LOGIN, "\t0\tTST", "parsing empty user base64 hash should fail"},
+		{LOGIN, ".\tTST\t0", "parsing invalid base64 hash should fail"},
+		{LOGIN, "\tTST\t", "parsing empty user base64 hash should fail"},
 		{LOGIN, util.Base64Encode(hash1) + "\t\t", "parsing an empty timestamp should fail"},
-		{LOGIN, util.Base64Encode(hash1) + "\te\t", "parsing an invalid timestamp should fail"},
-		{LOGIN, util.Base64Encode(hash1) + "\t0\tTST\ttest", "too many fields should fail"},
-		{LOGIN, util.Base64Encode(hash1) + "\t0\tXYZ", "unknown location should fail"},
-		{LOGIN, util.Base64Encode(hash1) + "\t0", "not enough fields should fail"},
-		{LOGIN, util.Base64Encode([]byte("12345678901234567890")) + "\t0\tTST", "parsing an unknown user hash should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\tTST\te", "parsing an invalid timestamp should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\tTST\t0\ttest", "too many fields should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\tXYZ\t", "unknown location should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\tTST", "not enough fields should fail"},
+		{LOGIN, util.Base64Encode([]byte("12345678901234567890")) + "\tTST\t0", "parsing an unknown user hash should fail"},
 	}
 
 	for _, entry := range errorData {
