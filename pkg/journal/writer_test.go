@@ -117,6 +117,7 @@ func TestWriter_UpdateOutput(t *testing.T) {
 }
 
 func TestWriter_writeLine(t *testing.T) {
+	t.Parallel()
 	buffer := &bytes.Buffer{}
 	writer := Writer{
 		outputLock: sync.Mutex{},
@@ -132,6 +133,7 @@ func TestWriter_writeLine(t *testing.T) {
 }
 
 func TestWriter_WriteUserIfUnknown(t *testing.T) {
+	t.Parallel()
 	buffer := &bytes.Buffer{}
 	writer := Writer{
 		knownUsers: util.NewStringSet(1),
@@ -167,6 +169,7 @@ func TestWriter_WriteUserIfUnknown(t *testing.T) {
 }
 
 func TestWriter_WriteEventUserHash(t *testing.T) {
+	t.Parallel()
 	loc1 := &Location{Name: "Mosbach", Code: "MOS"}
 	loc2 := &Location{Name: "Teststadt", Code: "TST"}
 	buffer := &bytes.Buffer{}
@@ -202,6 +205,7 @@ func TestWriter_WriteEventUserHash(t *testing.T) {
 }
 
 func TestWriter_WriteEventUser(t *testing.T) {
+	t.Parallel()
 	loc1 := &Location{Name: "Mosbach", Code: "MOS"}
 	loc2 := &Location{Name: "Teststadt", Code: "TST"}
 	buffer := bytes.Buffer{}
