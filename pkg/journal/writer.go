@@ -126,20 +126,20 @@ func (writer *Writer) writeUser(user *User) error {
 
 // WriteEventUser writes an event with the given event type for the User to the log.
 // If the User does not exist yet, a User line is printed first.
-func (writer *Writer) WriteEventUser(user *User, eventType EventType) error {
+func (writer *Writer) WriteEventUser(user *User, location *Location, eventType EventType) error {
 	hash, err := writer.WriteUserIfUnknown(user)
 	if err != nil {
 		return fmt.Errorf("failed to write User login with User data: %w", err)
 	}
-	if err = writer.WriteEventUserHash(hash, eventType); err != nil {
+	if err = writer.WriteEventUserHash(hash, location, eventType); err != nil {
 		return fmt.Errorf("failed to write User login with User data: %w", err)
 	}
 	return nil
 }
 
 // WriteEventUserHash writes an event with the given type and User hash.
-func (writer *Writer) WriteEventUserHash(userHash string, eventType EventType) error {
-	err := writer.writeLine(fmt.Sprintf("%v%s\t%d", eventType, userHash, time.Now().UTC().Unix()))
+func (writer *Writer) WriteEventUserHash(userHash string, location *Location, eventType EventType) error {
+	err := writer.writeLine(fmt.Sprintf("%v%s\t%s\t%d", eventType, userHash, location.Code, time.Now().UTC().Unix()))
 	if err != nil {
 		return fmt.Errorf("failed to write User event (type: %v): %w", eventType, err)
 	}

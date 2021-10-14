@@ -45,14 +45,15 @@ const (
 type Event struct {
 	EventType EventType
 	User      *User
+	Location  *Location
 	Timestamp int64
 }
 
 // ParseEventJournalEntry parses the event data in journal format into an Event.
 // The "users" argument is used to look up the user hash in the known users.
 func ParseEventJournalEntry(eventType EventType, data string, users *map[string]*User) (Event, error) {
-	parts := strings.SplitN(data, "\t", 2)
-	if len(parts) < 2 {
+	parts := strings.SplitN(data, "\t", 3)
+	if len(parts) < 3 {
 		return Event{}, fmt.Errorf("event data does not contain enough fields")
 	}
 	hash, err := util.Base64Decode(parts[0])
@@ -63,13 +64,18 @@ func ParseEventJournalEntry(eventType EventType, data string, users *map[string]
 	if !exists {
 		return Event{}, fmt.Errorf("couldn't resolve User hash \"%s\" in event data", parts[0])
 	}
-	unixSeconds, err2 := strconv.ParseInt(parts[1], 10, 64)
+	loc, exists := Locations[parts[1]]
+	if !exists {
+		return Event{}, fmt.Errorf("couldn't resolve loc code \"%s\"", parts[1])
+	}
+	unixSeconds, err2 := strconv.ParseInt(parts[2], 10, 64)
 	if err2 != nil {
 		return Event{}, fmt.Errorf("failed to parse event timestamp \"%s\": %w", parts[1], err2)
 	}
 	return Event{
 		EventType: eventType,
 		User:      user,
+		Location:  loc,
 		Timestamp: unixSeconds,
 	}, nil
 }

@@ -51,31 +51,34 @@ func TestUser_ToJournalLine(t *testing.T) {
 
 func TestParseEventJournalEntry(t *testing.T) {
 	users := make(map[string]*User, 10)
+	Locations = map[string]*Location{
+		"MOS": {Name: "Mosbach", Code: "MOS"},
+		"TST": {Name: "Test", Code: "TST"},
+	}
 	hash1, user1 := AddUserEntry(users, &User{Name: "Frank", Address: "Leipzig"})
 	hash2, user2 := AddUserEntry(users, &User{Name: "Hello", Address: "World"})
 	validData := []struct {
-		eventType EventType
-		hash      []byte
-		event     Event
+		hash  []byte
+		event Event
 	}{
 		{
-			eventType: LOGIN, hash: hash1,
-			event: Event{EventType: LOGIN, User: user1, Timestamp: 1609455600},
+			hash:  hash1,
+			event: Event{EventType: LOGIN, Location: Locations["MOS"], User: user1, Timestamp: 1609455600},
 		},
 		{
-			eventType: LOGOUT, hash: hash1,
-			event: Event{EventType: LOGOUT, User: user1, Timestamp: 1634112969},
+			hash:  hash1,
+			event: Event{EventType: LOGOUT, Location: Locations["TST"], User: user1, Timestamp: 1634112969},
 		},
 		{
-			eventType: LOGIN, hash: hash2,
-			event: Event{EventType: LOGIN, User: user2, Timestamp: 0},
+			hash:  hash2,
+			event: Event{EventType: LOGIN, Location: Locations["TST"], User: user2, Timestamp: 0},
 		},
 	}
 
 	for _, entry := range validData {
-		data := fmt.Sprintf("%s\t%d", util.Base64Encode(entry.hash), entry.event.Timestamp)
-		event, err := ParseEventJournalEntry(entry.eventType, data, &users)
-		if assert.NoErrorf(t, err, "failed to parse correct journal entry with %v and %s", entry.eventType, data) {
+		data := fmt.Sprintf("%s\t%s\t%d", util.Base64Encode(entry.hash), entry.event.Location.Code, entry.event.Timestamp)
+		event, err := ParseEventJournalEntry(entry.event.EventType, data, &users)
+		if assert.NoErrorf(t, err, "failed to parse correct journal entry with %v and %s", entry.event.EventType, data) {
 			assert.Equal(t, entry.event, event, "failed to correctly parse journal entry")
 		}
 	}
@@ -85,13 +88,14 @@ func TestParseEventJournalEntry(t *testing.T) {
 		data      string
 		message   string
 	}{
-		{LOGIN, ".\ti0", "parsing invalid base64 hash should fail"},
-		{LOGIN, "\t0", "parsing empty user base64 hash should fail"},
-		{LOGIN, util.Base64Encode(hash1) + "\t", "parsing an empty timestamp should fail"},
-		{LOGIN, util.Base64Encode(hash1) + "\te", "parsing an invalid timestamp should fail"},
-		{LOGIN, util.Base64Encode(hash1) + "\t0\t", "too many fields should fail"},
-		{LOGIN, util.Base64Encode(hash1), "not enough fields should fail"},
-		{LOGIN, util.Base64Encode([]byte("12345678901234567890")) + "\t0", "parsing an unknown user hash should fail"},
+		{LOGIN, ".\ti0\tTST", "parsing invalid base64 hash should fail"},
+		{LOGIN, "\t0\tTST", "parsing empty user base64 hash should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\t\t", "parsing an empty timestamp should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\te\t", "parsing an invalid timestamp should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\t0\tTST\ttest", "too many fields should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\t0\tXYZ", "unknown location should fail"},
+		{LOGIN, util.Base64Encode(hash1) + "\t0", "not enough fields should fail"},
+		{LOGIN, util.Base64Encode([]byte("12345678901234567890")) + "\t0\tTST", "parsing an unknown user hash should fail"},
 	}
 
 	for _, entry := range errorData {
