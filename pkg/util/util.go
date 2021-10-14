@@ -5,6 +5,7 @@ import (
 	"crypto/sha1"
 	"encoding/base64"
 	"encoding/gob"
+	"io"
 	"log"
 )
 
@@ -28,4 +29,16 @@ func Base64Encode(val []byte) string {
 // Base64Decode base64 decodes a string to raw bytes.
 func Base64Decode(val string) ([]byte, error) {
 	return base64.StdEncoding.DecodeString(val)
+}
+
+func WriteString(writer io.Writer, text string) error {
+	textBytes := []byte(text)
+	for len(textBytes) > 0 {
+		length, err := writer.Write(textBytes)
+		if err != nil {
+			return err
+		}
+		textBytes = textBytes[length:]
+	}
+	return nil
 }

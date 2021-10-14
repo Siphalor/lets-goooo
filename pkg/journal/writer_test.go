@@ -27,7 +27,9 @@ func TestNewWriter(t *testing.T) {
 	defer remover()
 	writer, err := NewWriter(tempDir)
 	if assert.NoError(t, err, "failed to create journal writer for new directory") {
-		assert.Equal(t, GetCurrentJournalPath(tempDir), writer.output.Name(), "wrong file output path")
+		file, ok := writer.output.(*os.File)
+		require.True(t, ok, "failed to dereference journal output to file")
+		assert.Equal(t, GetCurrentJournalPath(tempDir), file.Name(), "wrong file output path")
 	}
 }
 
@@ -52,9 +54,9 @@ func TestWriter_LoadFrom(t *testing.T) {
 		{Name: "cde", Address: "123"},
 		{Name: "", Address: ""},
 	}
-	_, err = file.WriteString("+ignored\n-ignored\n")
+	err = util.WriteString(file, "+ignored\n-ignored\n")
 	for _, user := range users {
-		_, err = file.WriteString(fmt.Sprintf("*%s\t%s\n", user.Name, user.Address))
+		err = util.WriteString(file, fmt.Sprintf("*%s\t%s\n", user.Name, user.Address))
 	}
 	err = file.Close()
 
@@ -67,7 +69,7 @@ func TestWriter_LoadFrom(t *testing.T) {
 
 	file, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	require.NoError(t, err, "internal error: failed to create journal file")
-	_, err = file.WriteString("*invalid line")
+	err = util.WriteString(file, "*invalid line")
 	err = file.Close()
 
 	buf := bytes.Buffer{}
@@ -88,15 +90,19 @@ func TestWriter_UpdateOutput(t *testing.T) {
 	writer := Writer{outputLock: sync.Mutex{}, directory: tempDir}
 
 	if assert.NoError(t, writer.UpdateOutput(), "failed to run update output") {
-		if assert.Equal(t, GetCurrentJournalPath(tempDir), writer.output.Name(), "incorrect journal file path") {
-			assert.FileExists(t, writer.output.Name(), "failed to create journal file")
+		file, ok := writer.output.(*os.File)
+		require.True(t, ok, "failed to dereference journal output to file")
+		if assert.Equal(t, GetCurrentJournalPath(tempDir), file.Name(), "incorrect journal file path") {
+			assert.FileExists(t, file.Name(), "failed to create journal file")
 		}
 	}
 
 	writer.directory = path.Join(writer.directory, "none")
 	if assert.NoError(t, writer.UpdateOutput(), "failed to run update output for non-existing directory") {
-		if assert.Equal(t, GetCurrentJournalPath(writer.directory), writer.output.Name(), "incorrect journal file name") {
-			assert.FileExists(t, writer.output.Name(), "failed to create journal file")
+		file, ok := writer.output.(*os.File)
+		require.True(t, ok, "failed to dereference journal output to file")
+		if assert.Equal(t, GetCurrentJournalPath(writer.directory), file.Name(), "incorrect journal file name") {
+			assert.FileExists(t, file.Name(), "failed to create journal file")
 		}
 	}
 

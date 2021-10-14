@@ -3,6 +3,7 @@ package journal
 import (
 	"bufio"
 	"fmt"
+	"io"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
 	"log"
 	"os"
@@ -16,7 +17,7 @@ type Writer struct {
 	knownUsers util.StringSet
 	directory  string
 	outputLock sync.Mutex
-	output     *os.File
+	output     io.Writer
 }
 
 // NewWriter creates a new Writer with the given base directory where journal files will be stored.
@@ -78,6 +79,11 @@ func (writer *Writer) LoadFrom(filePath string) error {
 func (writer *Writer) UpdateOutput() error {
 	writer.outputLock.Lock()
 	defer writer.outputLock.Unlock()
+	if closable, ok := writer.output.(io.Closer); ok {
+		if err := closable.Close(); err != nil {
+			return fmt.Errorf("failed to close journal output: %w", err)
+		}
+	}
 	writer.output = nil
 	filePath := GetCurrentJournalPath(writer.directory)
 	err := os.MkdirAll(path.Dir(filePath), 0777) // TODO
@@ -96,7 +102,7 @@ func (writer *Writer) UpdateOutput() error {
 // It is thread-safe.
 func (writer *Writer) writeLine(line string) error {
 	writer.outputLock.Lock()
-	_, err := writer.output.WriteString(line + "\n")
+	err := util.WriteString(writer.output, line+"\n")
 	defer writer.outputLock.Unlock()
 	if err != nil {
 		return fmt.Errorf("failed to write journal line: %w", err)

@@ -1,6 +1,8 @@
 package util
 
 import (
+	"bytes"
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
 )
@@ -36,4 +38,42 @@ func TestBase64Decode(t *testing.T) {
 	if assert.NoError(t, err, "failed to decode valid base64 string") {
 		assert.Equal(t, "Hello World", string(decoded))
 	}
+}
+
+func TestWriteString(t *testing.T) {
+	buffer := bytes.Buffer{}
+	if assert.NoError(t, WriteString(&buffer, "test"), "buffer write should not fail") {
+		assert.Equal(t, "test", buffer.String())
+	}
+
+	mockWriter_ := newMockWriter()
+	if assert.NoError(t, WriteString(&mockWriter_, "test"), "sequential buffer write should not fail") {
+		assert.Equal(t, "test", buffer.String())
+	}
+
+	errorWriter_ := newErrorWriter()
+	assert.Error(t, WriteString(&errorWriter_, "test"), "error in buffer write should fail WriteString")
+}
+
+type mockWriter struct {
+	buffer []byte
+}
+
+func newMockWriter() mockWriter {
+	return mockWriter{buffer: make([]byte, 0)}
+}
+
+func (mw *mockWriter) Write(text []byte) (int, error) {
+	mw.buffer = append(mw.buffer, text[0])
+	return 1, nil
+}
+
+type errorWriter bool
+
+func newErrorWriter() errorWriter {
+	return false
+}
+
+func (ew *errorWriter) Write(_ []byte) (int, error) {
+	return 0, fmt.Errorf("test error")
 }
