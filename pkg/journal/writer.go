@@ -103,9 +103,17 @@ func (writer *Writer) UpdateOutput() error {
 func (writer *Writer) writeLine(line string) error {
 	writer.outputLock.Lock()
 	err := util.WriteString(writer.output, line+"\n")
-	defer writer.outputLock.Unlock()
+	writer.outputLock.Unlock()
 	if err != nil {
 		return fmt.Errorf("failed to write journal line: %w", err)
+	}
+	return nil
+}
+
+// writeUser writes the given User data to the journal.
+func (writer *Writer) writeUser(user *User) error {
+	if err := writer.writeLine("*" + user.ToJournalLine()); err != nil {
+		return fmt.Errorf("failed to write User data: %w", err)
 	}
 	return nil
 }
@@ -117,15 +125,16 @@ func (writer *Writer) WriteUserIfUnknown(user *User) (string, error) {
 		if err := writer.writeUser(user); err != nil {
 			return hash, fmt.Errorf("failed to write User data if unknown: %w", err)
 		}
-		return hash, writer.writeUser(user)
+		return hash, nil
 	}
 	return hash, nil
 }
 
-// writeUser writes the given User data to the journal.
-func (writer *Writer) writeUser(user *User) error {
-	if err := writer.writeLine("*" + user.ToJournalLine()); err != nil {
-		return fmt.Errorf("failed to write User data: %w", err)
+// WriteEventUserHash writes an event with the given type and User hash.
+func (writer *Writer) WriteEventUserHash(userHash string, location *Location, eventType EventType) error {
+	err := writer.writeLine(fmt.Sprintf("%s%s\t%s\t%d", eventType.ToString(), userHash, location.Code, time.Now().UTC().Unix()))
+	if err != nil {
+		return fmt.Errorf("failed to write User event (type: %v): %w", eventType, err)
 	}
 	return nil
 }
@@ -139,15 +148,6 @@ func (writer *Writer) WriteEventUser(user *User, location *Location, eventType E
 	}
 	if err = writer.WriteEventUserHash(hash, location, eventType); err != nil {
 		return fmt.Errorf("failed to write User login with User data: %w", err)
-	}
-	return nil
-}
-
-// WriteEventUserHash writes an event with the given type and User hash.
-func (writer *Writer) WriteEventUserHash(userHash string, location *Location, eventType EventType) error {
-	err := writer.writeLine(fmt.Sprintf("%v%s\t%s\t%d", eventType, userHash, location.Code, time.Now().UTC().Unix()))
-	if err != nil {
-		return fmt.Errorf("failed to write User event (type: %v): %w", eventType, err)
 	}
 	return nil
 }

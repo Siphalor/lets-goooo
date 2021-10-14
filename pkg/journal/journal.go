@@ -41,6 +41,10 @@ const (
 	LOGOUT           = '-'
 )
 
+func (et EventType) ToString() string {
+	return string(et)
+}
+
 // Event is the representation of a User related event.
 type Event struct {
 	EventType EventType

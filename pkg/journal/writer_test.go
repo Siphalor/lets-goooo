@@ -117,7 +117,124 @@ func TestWriter_UpdateOutput(t *testing.T) {
 }
 
 func TestWriter_writeLine(t *testing.T) {
+	buffer := &bytes.Buffer{}
+	writer := Writer{
+		outputLock: sync.Mutex{},
+		output:     buffer,
+	}
+	if assert.NoError(t, writer.writeLine("test"), "valid write line failed") {
+		assert.Equal(t, "test\n", buffer.String())
+	}
 
+	ew := newErrorWriter()
+	writer.output = &ew
+	assert.EqualError(t, writer.writeLine("test"), "failed to write journal line: test error")
+}
+
+func TestWriter_WriteUserIfUnknown(t *testing.T) {
+	buffer := &bytes.Buffer{}
+	writer := Writer{
+		knownUsers: util.NewStringSet(1),
+		outputLock: sync.Mutex{},
+		output:     buffer,
+	}
+
+	user := User{Name: "Tester", Address: "Addr"}
+	hash := util.Base64Encode(util.Hash(user))
+	retHash, err := writer.WriteUserIfUnknown(&user)
+	assert.Equal(t, hash, retHash, "the returned hash should be accurate")
+	if assert.NoError(t, err) {
+		assert.Equal(t, fmt.Sprintf("*%s\t%s\n", user.Name, user.Address), buffer.String())
+	}
+
+	buffer.Reset()
+	writer.knownUsers = util.NewStringSet(1)
+	writer.knownUsers.Add(hash)
+	retHash, err = writer.WriteUserIfUnknown(&user)
+	assert.Equal(t, hash, retHash, "the returned hash should be accurate")
+	if assert.NoError(t, err) {
+		assert.Equal(t, "", buffer.String())
+	}
+
+	buffer.Reset()
+	writer.knownUsers = util.NewStringSet(0)
+	ew := newErrorWriter()
+	writer.output = &ew
+	_, err = writer.WriteUserIfUnknown(&user)
+	if assert.Error(t, err, "errors in the writer should be propagated") {
+		assert.Equal(t, "", buffer.String(), "errors should produce no output!")
+	}
+}
+
+func TestWriter_WriteEventUserHash(t *testing.T) {
+	loc1 := &Location{Name: "Mosbach", Code: "MOS"}
+	loc2 := &Location{Name: "Teststadt", Code: "TST"}
+	buffer := &bytes.Buffer{}
+	writer := Writer{
+		knownUsers: util.NewStringSet(2),
+		outputLock: sync.Mutex{},
+		output:     buffer,
+	}
+	data := []struct {
+		Hash string
+		*Location
+		EventType
+		Result string
+	}{
+		{"hash1", loc1, LOGIN, "+hash1\tMOS"},
+		{"hash1", loc1, LOGOUT, "-hash1\tMOS"},
+		{"hash1", loc2, LOGIN, "+hash1\tTST"},
+		{"hash2", loc1, LOGIN, "+hash2\tMOS"},
+		{"hash2", loc1, LOGOUT, "-hash2\tMOS"},
+		{"hash2", loc2, LOGOUT, "-hash2\tTST"},
+	}
+
+	for _, entry := range data {
+		buffer.Reset()
+		if assert.NoError(t, writer.WriteEventUserHash(entry.Hash, entry.Location, entry.EventType)) {
+			assert.Equal(t, fmt.Sprintf("%s\t%d\n", entry.Result, time.Now().Unix()), buffer.String())
+		}
+	}
+
+	ew := newErrorWriter()
+	writer.output = &ew
+	assert.Error(t, writer.WriteEventUserHash("hash", loc1, LOGIN))
+}
+
+func TestWriter_WriteEventUser(t *testing.T) {
+	loc1 := &Location{Name: "Mosbach", Code: "MOS"}
+	loc2 := &Location{Name: "Teststadt", Code: "TST"}
+	buffer := bytes.Buffer{}
+	writer := Writer{
+		knownUsers: util.NewStringSet(2),
+		outputLock: sync.Mutex{},
+		output:     &buffer,
+	}
+	user1 := User{Name: "Tester", Address: "TAddr"}
+	hash1 := util.Base64Encode(util.Hash(user1))
+	user2 := User{Name: "", Address: ""}
+	hash2 := util.Base64Encode(util.Hash(user2))
+
+	if assert.NoError(t, writer.WriteEventUser(&user1, loc1, LOGIN)) {
+		assert.Equal(
+			t, fmt.Sprintf("*%s\t%s\n+%s\tMOS\t%d\n", user1.Name, user1.Address, hash1, time.Now().Unix()),
+			buffer.String(),
+		)
+	}
+
+	buffer.Reset()
+	writer.knownUsers.Add(hash2)
+	if assert.NoError(t, writer.WriteEventUser(&user2, loc2, LOGOUT)) {
+		assert.Equal(
+			t, fmt.Sprintf("-%s\tTST\t%d\n", hash2, time.Now().Unix()),
+			buffer.String(),
+		)
+	}
+
+	buffer.Reset()
+	ew := newErrorWriter()
+	writer.output = &ew
+	assert.Error(t, writer.WriteEventUser(&user2, loc1, LOGIN))
 }
 
 func CreateTempDir(t *testing.T) (string, func()) {
@@ -137,4 +254,14 @@ func LogToBuffer(buffer *bytes.Buffer) func() {
 		log.SetOutput(os.Stderr)
 		log.SetFlags(flags)
 	}
+}
+
+type errorWriter bool
+
+func newErrorWriter() errorWriter {
+	return false
+}
+
+func (ew *errorWriter) Write(_ []byte) (int, error) {
+	return 0, fmt.Errorf("test error")
 }
