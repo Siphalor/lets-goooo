@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"io"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
 	"log"
 	"os"
@@ -31,6 +32,15 @@ func TestNewWriter(t *testing.T) {
 		require.True(t, ok, "failed to dereference journal output to file")
 		assert.Equal(t, GetCurrentJournalPath(tempDir), file.Name(), "wrong file output path")
 	}
+	file, ok := writer.output.(io.Closer)
+	if ok {
+		_ = file.Close()
+	}
+
+	_ = os.Remove(GetCurrentJournalPath(tempDir))
+	_ = os.Mkdir(GetCurrentJournalPath(tempDir), 0777)
+	writer, err = NewWriter(tempDir)
+	assert.Error(t, err, "writer creation should fail if no output file can be created")
 }
 
 func TestWriter_LoadFrom(t *testing.T) {
@@ -239,6 +249,9 @@ func TestWriter_WriteEventUser(t *testing.T) {
 	ew := newErrorWriter()
 	writer.output = &ew
 	assert.Error(t, writer.WriteEventUser(&user2, loc1, LOGIN))
+
+	writer.knownUsers.Remove(hash1)
+	assert.Error(t, writer.WriteEventUser(&user1, loc1, LOGOUT))
 }
 
 func CreateTempDir(t *testing.T) (string, func()) {
