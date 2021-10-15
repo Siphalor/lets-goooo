@@ -20,39 +20,37 @@ const tempDefaultString = `<html>
 
 var tempDefault = template.Must(template.New("lets goooo").Parse(tempDefaultString)) //TODO get from other file
 
+type handle struct {
+	hand func(http.ResponseWriter, *http.Request)
+}
+
 func RunWebservers() {
 	wait := new(sync.WaitGroup)
 	wait.Add(2)
 	go func() {
-		CreateWebserver(443)
+		handlers := map[string]handle{"/": handle{defaultHandler}}
+		CreateWebserver(443, handlers)
 		wait.Done()
 	}()
-	time.AfterFunc(20*time.Second, func() {
-		CreateWebserver(4443)
+	time.AfterFunc(2*time.Second, func() {
+		handler := map[string]handle{"/": handle{defaultHandler}}
+		CreateWebserver(4443, handler)
 		wait.Done()
 	})
 	wait.Wait()
 }
 
-func mainHandler(w http.ResponseWriter, r *http.Request) {
+func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	tempDefault.ExecuteTemplate(w, "lets goooo", nil)
-
-	//q := r.URL.Query()
-	//name := q.Get("name")
-	//if name == "" {
-	//	name = "World"
-	//}
-	//responseString := "<html><body>Hello " + name + "</body></html>"
-	//w.Write([]byte(responseString)) // unbedingt Templates verwenden!
 }
 
-func CreateWebserver(port int) {
+func CreateWebserver(port int, handlers map[string]handle) {
 	mux := http.NewServeMux()
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
-	mux.HandleFunc("/", mainHandler) //TODO mainHandler für LogoSeite
-	//http.HandleFunc("/login/", loginHandler)
-	//http.HandleFunc("/logout/", logoutHandler)
+	for key, handler := range handlers {
+		mux.HandleFunc(key, handler.hand)
+	}
 
 	server := http.Server{
 		Addr:    fmt.Sprintf(":%d", port),
