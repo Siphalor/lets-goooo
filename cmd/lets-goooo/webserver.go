@@ -18,8 +18,6 @@ const tempDefaultString = `<html>
 </body>
 </html>`
 
-var tempDefault = template.Must(template.New("lets goooo").Parse(tempDefaultString)) //TODO get from other file
-
 func RunWebservers() {
 	wait := new(sync.WaitGroup)
 	wait.Add(2)
@@ -36,8 +34,18 @@ func RunWebservers() {
 	wait.Wait()
 }
 
-func defaultHandler(w http.ResponseWriter, r *http.Request) {
-	tempDefault.ExecuteTemplate(w, "lets goooo", nil)
+func defaultHandler(w http.ResponseWriter, _ *http.Request) {
+	//tempDefault
+	tempDefault, parseErr := template.ParseFiles("default.html")
+	if parseErr != nil {
+		println("TODO change this")
+		fmt.Printf("%#v", parseErr)
+	}
+	exErr := tempDefault.Execute(w, nil)
+	if exErr != nil {
+		println("TODO change this")
+		fmt.Printf("%#v", exErr)
+	}
 }
 
 func CreateWebserver(port int, handlers map[string]http.HandlerFunc) {
