@@ -22,7 +22,7 @@ func ReadJournal(filepath string) (Journal, error) {
 	}
 	journal := Journal{
 		users:  make(map[string]*User, 100),
-		events: make([]Event, 1000),
+		events: make([]Event, 0, 1000),
 	}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
