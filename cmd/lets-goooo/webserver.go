@@ -20,20 +20,16 @@ const tempDefaultString = `<html>
 
 var tempDefault = template.Must(template.New("lets goooo").Parse(tempDefaultString)) //TODO get from other file
 
-type handle struct {
-	hand func(http.ResponseWriter, *http.Request)
-}
-
 func RunWebservers() {
 	wait := new(sync.WaitGroup)
 	wait.Add(2)
 	go func() {
-		handlers := map[string]handle{"/": handle{defaultHandler}}
+		handlers := map[string]http.HandlerFunc{"/": defaultHandler}
 		CreateWebserver(443, handlers)
 		wait.Done()
 	}()
 	time.AfterFunc(2*time.Second, func() {
-		handler := map[string]handle{"/": handle{defaultHandler}}
+		handler := map[string]http.HandlerFunc{"/": defaultHandler}
 		CreateWebserver(4443, handler)
 		wait.Done()
 	})
@@ -44,12 +40,12 @@ func defaultHandler(w http.ResponseWriter, r *http.Request) {
 	tempDefault.ExecuteTemplate(w, "lets goooo", nil)
 }
 
-func CreateWebserver(port int, handlers map[string]handle) {
+func CreateWebserver(port int, handlers map[string]http.HandlerFunc) {
 	mux := http.NewServeMux()
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
 	for key, handler := range handlers {
-		mux.HandleFunc(key, handler.hand)
+		mux.HandleFunc(key, handler)
 	}
 
 	server := http.Server{
