@@ -18,7 +18,7 @@ func TestReadJournal(t *testing.T) {
 	err := os.Mkdir(dirPath, 0777)
 	require.NoError(t, err, "internal error: failed to create test directory")
 	_, err = ReadJournal(dirPath)
-	assert.Error(t, err, "failing to open the file should fail the journal read in")
+	assert.Error(t, err, "providing a directory should fail the journal read in")
 
 	filepath := path.Join(tempDir, "journal.txt")
 	file, _ := os.OpenFile(filepath, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, 0777)
