@@ -151,3 +151,21 @@ func (writer *Writer) WriteEventUser(user *User, location *Location, eventType E
 	}
 	return nil
 }
+
+// TrackJournalRotation takes care of daily updating the journal file.
+// This method should be run as its own routine:
+func (writer *Writer) TrackJournalRotation() {
+	for {
+		now := time.Now().In(time.Local)
+		nextDay := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.Local)
+		time.Sleep(nextDay.Sub(now))
+		for {
+			err := writer.UpdateOutput()
+			if err == nil {
+				break
+			}
+			time.Sleep(30 * time.Second)
+			log.Printf("failed to update journal output: %#v", err)
+		}
+	}
+}
