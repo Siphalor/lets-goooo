@@ -14,10 +14,16 @@ import (
 
 // Writer is a write-only class to write to journal files.
 type Writer struct {
+	// knownUsers contains the hashes for the currently known users.
 	knownUsers util.StringSet
-	directory  string
+	// directory is the base directory for the journal files
+	directory string
+	// outputLock is a mutex for using the output in a thread-safe way.
+	// It needs to be locked for mutation as well as writes to the output.
 	outputLock sync.Mutex
-	output     io.Writer
+	// output is the current output stream for the journal.
+	// It is usually a file but this should not be relied upon.
+	output io.Writer
 }
 
 // NewWriter creates a new Writer with the given base directory where journal files will be stored.
@@ -44,10 +50,12 @@ func NewWriter(directory string) (*Writer, error) {
 	return &writer, nil
 }
 
+// GetCurrentJournalPath determines the current journal output file path for today based on the given journal directory.
 func GetCurrentJournalPath(directory string) string {
 	return path.Join(directory, util.GetDateFilename(time.Now())+".txt")
 }
 
+// LoadFrom extracts already known users from the given journal file.
 func (writer *Writer) LoadFrom(filePath string) error {
 	file, err := os.OpenFile(filePath, os.O_RDONLY, 0777)
 	if err != nil {
