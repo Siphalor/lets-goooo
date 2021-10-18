@@ -72,7 +72,7 @@ func TestWriter_LoadFrom(t *testing.T) {
 
 	if assert.NoError(t, writer.LoadFrom(filePath), "failed to load writer data from prepared file") {
 		for _, user := range users {
-			assert.Truef(t, writer.knownUsers.Contains(string(util.Hash(user))), "missing user: %#v", user)
+			assert.Truef(t, writer.knownUsers.Contains(string(user.Hash())), "missing user: %#v", user)
 		}
 		assert.LessOrEqual(t, writer.knownUsers.Size(), len(users), "too many entries in knownUsers")
 	}
@@ -152,7 +152,7 @@ func TestWriter_WriteUserIfUnknown(t *testing.T) {
 	}
 
 	user := User{Name: "Tester", Address: "Addr"}
-	hash := util.Base64Encode(util.Hash(user))
+	hash := util.Base64Encode(user.Hash())
 	retHash, err := writer.WriteUserIfUnknown(&user)
 	assert.Equal(t, hash, retHash, "the returned hash should be accurate")
 	if assert.NoError(t, err) {
@@ -225,9 +225,9 @@ func TestWriter_WriteEventUser(t *testing.T) {
 		output:     &buffer,
 	}
 	user1 := User{Name: "Tester", Address: "TAddr"}
-	hash1 := util.Base64Encode(util.Hash(user1))
+	hash1 := util.Base64Encode(user1.Hash())
 	user2 := User{Name: "", Address: ""}
-	hash2 := util.Base64Encode(util.Hash(user2))
+	hash2 := util.Base64Encode(user2.Hash())
 
 	if assert.NoError(t, writer.WriteEventUser(&user1, loc1, LOGIN)) {
 		assert.Equal(

@@ -36,7 +36,7 @@ func ReadJournal(filepath string) (Journal, error) {
 			if err != nil {
 				return journal, fmt.Errorf("failed to read journal User line \"%s\": %w", line, err)
 			}
-			journal.users[string(util.Hash(user))] = &user
+			journal.users[string(user.Hash())] = &user
 		case uint8(LOGIN), uint8(LOGOUT):
 			entry, err := ParseEventJournalEntry(EventType(line[0]), line[1:], &journal.users)
 			if err != nil {

@@ -76,7 +76,7 @@ func (writer *Writer) LoadFrom(filePath string) error {
 			if err != nil {
 				log.Printf("Failed to parse user line \"%s\"", line[1:])
 			}
-			writer.knownUsers.Add(string(util.Hash(user)))
+			writer.knownUsers.Add(string(user.Hash()))
 		}
 	}
 
@@ -128,7 +128,7 @@ func (writer *Writer) writeUser(user *User) error {
 
 // WriteUserIfUnknown writes the given User data to the journal if it's not already present.
 func (writer *Writer) WriteUserIfUnknown(user *User) (string, error) {
-	hash := util.Base64Encode(util.Hash(user))
+	hash := util.Base64Encode(user.Hash())
 	if !writer.knownUsers.Contains(hash) {
 		if err := writer.writeUser(user); err != nil {
 			return hash, fmt.Errorf("failed to write User data if unknown: %w", err)

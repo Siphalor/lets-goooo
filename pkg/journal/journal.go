@@ -33,6 +33,11 @@ func (user *User) ToJournalLine() string {
 		strings.ReplaceAll(user.Address, "\t", "    "))
 }
 
+// Hash creates the hash value for the user, e.g. used in journal files.
+func (user *User) Hash() []byte {
+	return util.HashString(user.ToJournalLine())
+}
+
 // EventType define known types of events.
 type EventType rune
 
@@ -43,6 +48,17 @@ const (
 
 func (et EventType) ToString() string {
 	return string(et)
+}
+
+func (et EventType) Name() string {
+	switch et {
+	case LOGIN:
+		return "Login"
+	case LOGOUT:
+		return "Logout"
+	default:
+		return "Unknown event type"
+	}
 }
 
 // Event is the representation of a User related event.

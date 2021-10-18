@@ -29,9 +29,9 @@ func TestReadJournal(t *testing.T) {
 	}
 
 	user1 := User{Name: "JLA", Address: "Mosbach"}
-	hash1 := util.Base64Encode(util.Hash(user1))
+	hash1 := util.Base64Encode(user1.Hash())
 	user2 := User{Name: "Tester", Address: "Goland"}
-	hash2 := util.Base64Encode(util.Hash(user2))
+	hash2 := util.Base64Encode(user2.Hash())
 
 	_ = util.WriteString(file, fmt.Sprintf("*%s\t%s\n", user1.Name, user1.Address))
 	_ = util.WriteString(file, fmt.Sprintf("+%s\tMOS\t0\n", hash1))
@@ -44,10 +44,10 @@ func TestReadJournal(t *testing.T) {
 	journal, err := ReadJournal(filepath)
 	if assert.NoError(t, err, "valid journal file failed reading") {
 		assert.Equal(t, 2, len(journal.users), "incorrect number of users in journal")
-		readUser1, exists := journal.users[string(util.Hash(user1))]
+		readUser1, exists := journal.users[string(user1.Hash())]
 		require.True(t, exists, "readUser1 1 doesn't exist in journal")
 		assert.Equal(t, user1, *readUser1, "readUser1 1 is read incorrectly")
-		readUser2, exists := journal.users[string(util.Hash(user2))]
+		readUser2, exists := journal.users[string(user2.Hash())]
 		require.True(t, exists, "readUser1 2 doesn't exist in journal")
 		assert.Equal(t, user2, *readUser2, "readUser1 2 is read incorrectly")
 
