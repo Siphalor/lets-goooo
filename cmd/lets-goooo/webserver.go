@@ -9,15 +9,6 @@ import (
 	"time"
 )
 
-const tempDefaultString = `<html>
-<head>
-<title>Lets Goooo</title>
-</head>
-<body style="text-align:center">
-<img src="assets/logoooo.svg" style="max-width:500px;" alt="Logo" />
-</body>
-</html>`
-
 func RunWebservers() {
 	wait := new(sync.WaitGroup)
 	wait.Add(2)
@@ -27,7 +18,10 @@ func RunWebservers() {
 		wait.Done()
 	}()
 	time.AfterFunc(2*time.Second, func() {
-		handler := map[string]http.HandlerFunc{"/": defaultHandler}
+		handler := map[string]http.HandlerFunc{
+			"/":   defaultHandler,
+			"/qr": qrHandler,
+		}
 		CreateWebserver(4443, handler)
 		wait.Done()
 	})
@@ -35,16 +29,25 @@ func RunWebservers() {
 }
 
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
-	//tempDefault
-	tempDefault, parseErr := template.ParseFiles("default.html")
+	executeTemplate(w, "default.html", nil)
+}
+
+func qrHandler(w http.ResponseWriter, r *http.Request) {
+	q := r.URL.Query()
+	location := q.Get("location")
+	_ = location
+}
+
+func executeTemplate(w http.ResponseWriter, file string, data interface{}) {
+	tempDefault, parseErr := template.ParseFiles(file)
 	if parseErr != nil {
-		println("TODO change this")
-		fmt.Printf("%#v", parseErr)
+		fmt.Printf("failed to parse template: %#v", parseErr)
+		return
 	}
-	exErr := tempDefault.Execute(w, nil)
+	exErr := tempDefault.Execute(w, data)
 	if exErr != nil {
-		println("TODO change this")
-		fmt.Printf("%#v", exErr)
+		fmt.Printf("failed to execute template: %#v", exErr)
+		return
 	}
 }
 
