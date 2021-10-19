@@ -116,7 +116,7 @@ func main() {
 func readJournal(path string) *journal.Journal {
 	readJournal, err := journal.ReadJournal(path)
 	if err != nil {
-		fmt.Printf("Failed to read readJournal (\"%s\"): %v\n", path, err)
+		fmt.Printf("Failed to read journal (\"%s\"): %v\n", path, err)
 		os.Exit(100)
 	}
 	return &readJournal
