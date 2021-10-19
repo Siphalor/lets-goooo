@@ -55,6 +55,7 @@ func main() {
 	switch subcommand.Name {
 	case "help":
 		commandGroup.PrintUsage("")
+		os.Exit(0)
 	case "show-person":
 		j := readJournal(*showPersonJournal)
 		user := (*journal.User)(nil)

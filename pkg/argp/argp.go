@@ -2,6 +2,7 @@ package argp
 
 import (
 	"fmt"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -93,7 +94,7 @@ func (flagSet *FlagSet) ParseFlags(args []string) error {
 			if !exists {
 				if stripped == "h" || stripped == "help" {
 					flagSet.PrintUsage("")
-					return nil
+					os.Exit(0)
 				}
 				return flagSet.handleError("unknown flag %s", arg)
 			}
