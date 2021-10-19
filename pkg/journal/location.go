@@ -42,8 +42,8 @@ func ReadLocations(path string) (eror error) {
 	}
 	Locations = map[string]*Location{}
 
-	for _, location := range l.Locations {
-		Locations[location.Code] = &location
+	for i, location := range l.Locations {
+		Locations[location.Code] = &l.Locations[i]
 	}
 	return nil
 }
