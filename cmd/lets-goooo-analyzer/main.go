@@ -48,8 +48,8 @@ func main() {
 	if err != nil {
 		return
 	}
-	if subcommand != nil {
-		println(subcommand.Name)
+	if subcommand == nil {
+		return
 	}
 
 	switch subcommand.Name {
@@ -89,7 +89,6 @@ func main() {
 		if *exportOutput == "" {
 			*exportOutput = journalPath + "-export.csv"
 		}
-		println(*exportOutputPerms)
 		file, err := os.OpenFile(*exportOutput, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.FileMode(*exportOutputPerms))
 		if err != nil {
 			fmt.Printf("Failed to open output file: %v\n", err)
