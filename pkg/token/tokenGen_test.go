@@ -10,9 +10,16 @@ import (
 var key = []byte("thisis32bitlongpassphraseimusing")
 
 func TestEncryptAES(t *testing.T) {
-	plain := "  1634639400:MOS"
-	expected := "60fdbe3bb31230a70d2ffe5ebb9a4e3f"
 
+	//Encryption fail check with wrong key length
+	plain := "  1634639400:MOS"
+	key = []byte("not32bitKey")
+	_, err := EncryptAES(key, plain)
+	assert.Error(t, err, "Encryption worked with wrong key")
+
+	//Testing for proper function of EncryptAES
+	key = []byte("thisis32bitlongpassphraseimusing")
+	expected := "60fdbe3bb31230a70d2ffe5ebb9a4e3f"
 	actual, err := EncryptAES(key, plain)
 
 	assert.NoErrorf(t, err, "encryption did not work")
@@ -20,9 +27,20 @@ func TestEncryptAES(t *testing.T) {
 }
 
 func TestDecryptAES(t *testing.T) {
+
+	//Decryption fail check with wrong key length
 	expectedPlain := "  1634639400:MOS"
 	cipher, _ := EncryptAES(key, expectedPlain)
+	key = []byte("not32bitKey")
+	_, err := DecryptAES(key, cipher)
+	assert.Error(t, err, "Decryption worked with wrong key")
 
+	//Decryption fail check with wrong cipher length
+	key = []byte("thisis32bitlongpassphraseimusing")
+	_, err = DecryptAES(key, "tooShortCipher")
+	assert.Error(t, err, "Decryption worked with wrong cipher")
+
+	//Testing for proper function of DecryptAES
 	actual, err := DecryptAES(key, cipher)
 
 	assert.NoError(t, err, "decryption did not work")

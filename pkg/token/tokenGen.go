@@ -38,6 +38,11 @@ func DecryptAES(key []byte, ciphertext string) (string, error) {
 
 	cipher, _ := hex.DecodeString(ciphertext)
 
+	if len(key) != 32 {
+		return "", fmt.Errorf("key has wrong length")
+	} else if len(ciphertext) != 32 {
+		return "", fmt.Errorf("cipher has wrong length")
+	}
 	c, err := aes.NewCipher(key)
 	if err != nil {
 		return "", fmt.Errorf("decryption failed: %w", err)
