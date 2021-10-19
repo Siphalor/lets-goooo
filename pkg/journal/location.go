@@ -20,16 +20,16 @@ type locationsXML struct {
 	Locations []Location `xml:"location"`
 }
 
-func ReadLocations(path string) error {
+func ReadLocations(path string) (eror error) {
 	xmlFile, err := os.Open(path)
 	if err != nil {
-		fmt.Println(err)
+		return fmt.Errorf("error occured opening the XML file: %v", err)
 	}
 
 	defer func() {
 		err = xmlFile.Close()
 		if err != nil {
-			fmt.Printf("error occured during closing of Location XML file: %v", err)
+			eror = fmt.Errorf("error occured during closing of Location XML file: %v", err)
 		}
 	}()
 
