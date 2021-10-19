@@ -16,7 +16,7 @@ jobs:
       - name: Build PDF
         uses: docker://pandoc/latex:2.11
         with:
-          args: -d pandoc/pandoc -t pdf -o out/doc.pdf -M date="`date --date='TZ="Europe/Berlin" now' \"+%d.%m.%Y\"`"
+          args: -d pandoc/pandoc -t pdf -o out/doc.pdf
       - name: Upload artifact
         uses: actions/upload-artifact@v2
         with:
