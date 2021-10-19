@@ -5,12 +5,18 @@ import (
 	qrcode "github.com/skip2/go-qrcode"
 )
 
-func GetQrCode(url string, location string) []byte {
-	token := CreateToken(location)
-	var png []byte
-	png, err := qrcode.Encode(url+"/login/"+token, qrcode.Medium, 256)
+func GetQrCode(url string, location string) ([]byte, error) {
+
+	token, err := CreateToken(location)
 	if err != nil {
-		fmt.Printf("Could not create QR Code: %v", err)
+		return []byte{}, fmt.Errorf("could not create Token: %w", err)
 	}
-	return png
+
+	var png []byte
+	png, err = qrcode.Encode(url+token, qrcode.Medium, 256)
+	if err != nil {
+		return []byte{}, fmt.Errorf("could not create QR Code: %w", err)
+	}
+
+	return png, nil
 }
