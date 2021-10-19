@@ -7,16 +7,19 @@ import (
 	"strings"
 )
 
+// SubcommandGroup groups multiple subcommands together into a group that can be evaluated on its own.
 type SubcommandGroup struct {
 	subcommands map[string]*Subcommand
 }
 
+// CreateSubcommandGroup creates a new subcommand group.
 func CreateSubcommandGroup() *SubcommandGroup {
 	return &SubcommandGroup{
 		subcommands: make(map[string]*Subcommand),
 	}
 }
 
+// ParseSubcommand parses the given arguments and resolves the called subcommand.
 func (sg *SubcommandGroup) ParseSubcommand(args []string) (*Subcommand, error) {
 	if len(args) < 2 {
 		fmt.Println("A subcommand is required.")
@@ -43,6 +46,7 @@ func (sg *SubcommandGroup) ParseSubcommand(args []string) (*Subcommand, error) {
 	return subcommand, nil
 }
 
+// PrintUsage prints the usage information for all subcommands.
 func (sg *SubcommandGroup) PrintUsage(indent string) {
 	fmt.Printf("%sAvailable subcommands:\n", indent)
 	indent += "  "
@@ -52,34 +56,41 @@ func (sg *SubcommandGroup) PrintUsage(indent string) {
 	}
 }
 
+// AddSubcommand adds a subcommand to the command group.
+// It returns the given subcommand to allow easy assignment.
 func (sg *SubcommandGroup) AddSubcommand(subcommand *Subcommand) *Subcommand {
 	sg.subcommands[strings.ToLower(subcommand.Name)] = subcommand
 	return subcommand
 }
 
+// Subcommand is the representation of a subcommand, with name usage information and flags.
 type Subcommand struct {
 	Name  string
 	Usage string
 	FlagSet
 }
 
+// CreateSubcommand creates a new subcommand with the given name and usage information.
 func CreateSubcommand(name string, usage string) *Subcommand {
 	return &Subcommand{
 		Name: name, Usage: usage, FlagSet: *CreateFlagSet(),
 	}
 }
 
+// FlagSet groups together flags and positional arguments.
 type FlagSet struct {
 	flags      map[string]*Flag
 	positional []*Flag
 }
 
+// CreateFlagSet creates a new, empty flag set.
 func CreateFlagSet() *FlagSet {
 	return &FlagSet{
 		flags: make(map[string]*Flag, 10),
 	}
 }
 
+// ParseFlags parses the flags for current FlagSet.
 func (flagSet *FlagSet) ParseFlags(args []string) error {
 	currentFlag := (*Flag)(nil)
 	pos := 0
@@ -133,6 +144,7 @@ func (flagSet *FlagSet) ParseFlags(args []string) error {
 	return nil
 }
 
+// handleError handles a parse error.
 func (flagSet *FlagSet) handleError(format string, args ...interface{}) error {
 	cappedFormat := strings.ToUpper(string(format[0])) + format[1:] + "\n"
 	fmt.Printf(cappedFormat, args)
@@ -140,6 +152,7 @@ func (flagSet *FlagSet) handleError(format string, args ...interface{}) error {
 	return fmt.Errorf(format+"\n", args)
 }
 
+// PrintUsage prints usage information for the FlagSet.
 func (flagSet *FlagSet) PrintUsage(indent string) {
 	if len(flagSet.positional) > 0 {
 		fmt.Printf("%sPositional arguments:\n", indent)
@@ -169,23 +182,27 @@ func (flagSet *FlagSet) PrintUsage(indent string) {
 	}
 }
 
+// FlagBuildArgs collects construction arguments for a Flag.
 type FlagBuildArgs struct {
 	Names       []string
 	Usage       string
 	DefaultText *string
 }
 
+// Flag represents the metadata and values of a flag.
 type Flag struct {
 	FlagBuildArgs
 	Default FlagValue
 	Value   FlagValue
 }
 
+// FlagValue can be used in a Flag to parse/serialize values.
 type FlagValue interface {
 	String() string
 	FromString(text string) error
 }
 
+// Bool creates a bool argument.
 func (flagSet *FlagSet) Bool(flagArgs FlagBuildArgs, defaultValue bool) *bool {
 	value := boolValue(defaultValue)
 	_defaultValue := boolValue(defaultValue)
@@ -193,6 +210,7 @@ func (flagSet *FlagSet) Bool(flagArgs FlagBuildArgs, defaultValue bool) *bool {
 	return (*bool)(&value)
 }
 
+// Int creates an int argument.
 func (flagSet *FlagSet) Int(flagArgs FlagBuildArgs, defaultValue int) *int {
 	value := intValue(defaultValue)
 	_defaultValue := intValue(defaultValue)
@@ -200,6 +218,7 @@ func (flagSet *FlagSet) Int(flagArgs FlagBuildArgs, defaultValue int) *int {
 	return (*int)(&value)
 }
 
+// Uint creates an uint argument.
 func (flagSet *FlagSet) Uint(flagArgs FlagBuildArgs, defaultValue uint) *uint {
 	value := uintValue(defaultValue)
 	_defaultValue := uintValue(defaultValue)
@@ -207,6 +226,7 @@ func (flagSet *FlagSet) Uint(flagArgs FlagBuildArgs, defaultValue uint) *uint {
 	return (*uint)(&value)
 }
 
+// String creates a string argument.
 func (flagSet *FlagSet) String(flagArgs FlagBuildArgs, defaultValue string) *string {
 	value := stringValue(defaultValue)
 	_defaultValue := stringValue(defaultValue)
@@ -214,6 +234,7 @@ func (flagSet *FlagSet) String(flagArgs FlagBuildArgs, defaultValue string) *str
 	return (*string)(&value)
 }
 
+// PositionalBool creates a positional bool argument.
 func (flagSet *FlagSet) PositionalBool(flagArgs FlagBuildArgs, defaultValue bool) *bool {
 	value := boolValue(defaultValue)
 	_defaultValue := boolValue(defaultValue)
@@ -221,6 +242,7 @@ func (flagSet *FlagSet) PositionalBool(flagArgs FlagBuildArgs, defaultValue bool
 	return (*bool)(&value)
 }
 
+// PositionalInt creates a positional int argument.
 func (flagSet *FlagSet) PositionalInt(flagArgs FlagBuildArgs, defaultValue int) *int {
 	value := intValue(defaultValue)
 	_defaultValue := intValue(defaultValue)
@@ -228,6 +250,7 @@ func (flagSet *FlagSet) PositionalInt(flagArgs FlagBuildArgs, defaultValue int) 
 	return (*int)(&value)
 }
 
+// PositionalUint creates a positional uint argument.
 func (flagSet *FlagSet) PositionalUint(flagArgs FlagBuildArgs, defaultValue uint) *uint {
 	value := uintValue(defaultValue)
 	_defaultValue := uintValue(defaultValue)
@@ -235,6 +258,7 @@ func (flagSet *FlagSet) PositionalUint(flagArgs FlagBuildArgs, defaultValue uint
 	return (*uint)(&value)
 }
 
+// PositionalString creates a positional string argument.
 func (flagSet *FlagSet) PositionalString(flagArgs FlagBuildArgs, defaultValue string) *string {
 	value := stringValue(defaultValue)
 	_defaultValue := stringValue(defaultValue)
@@ -242,6 +266,7 @@ func (flagSet *FlagSet) PositionalString(flagArgs FlagBuildArgs, defaultValue st
 	return (*string)(&value)
 }
 
+// addFlag adds a new flag to the FlagSet.
 func (flagSet *FlagSet) addFlag(flag *Flag) {
 	if flag.DefaultText == nil {
 		defText := flag.Default.String()
@@ -252,6 +277,7 @@ func (flagSet *FlagSet) addFlag(flag *Flag) {
 	}
 }
 
+// addPositional adds a new positional argument.
 func (flagSet *FlagSet) addPositional(flag *Flag) {
 	if flag.DefaultText == nil {
 		defText := flag.Default.String()
