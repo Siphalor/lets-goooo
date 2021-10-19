@@ -1,0 +1,25 @@
+name: Deploy Pandoc
+
+on:
+  push:
+    branches: documentation
+
+jobs:
+  deploy:
+     runs-on: ubuntu-latest
+     steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+      - run: mkdir out
+      - name: Build PDF
+        uses: docker://pandoc/latex:2.11
+        with:
+          args: -d pandoc/pandoc -t pdf -o out/doc.pdf
+      - name: Upload artifact
+        uses: actions/upload-artifact@v2
+        with:
+          name: doc.pdf
+          path: out/doc.pdf
+          if-no-files-found: error

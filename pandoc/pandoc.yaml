@@ -1,0 +1,11 @@
+from: markdown
+
+input-files:
+  - proposal.md
+
+standalone: true
+
+variables:
+  monobackgroundcolor: "#ddd"
+
+table-of-contents: true
