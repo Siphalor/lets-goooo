@@ -8,7 +8,7 @@ import (
 )
 
 func CreateToken(location string) (token string) {
-	timestamp := fmt.Sprintf("%16d:%s", time.Now().Unix(), location)
+	timestamp := fmt.Sprintf("%12d:%s", time.Now().Unix(), location)
 
 	//ToDO: Startparameter KEY
 	keyn := "thisis32bitlongpassphraseimusing"

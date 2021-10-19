@@ -1,13 +1,21 @@
 package main
 
 import (
+	"encoding/base64"
 	"fmt"
 	"html/template"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
 	"log"
 	"net/http"
 	"sync"
 	"time"
 )
+
+var logIOUrl = "https://localhost"
+
+type QrCodeData struct {
+	Qrcode string
+}
 
 func RunWebservers() {
 	wait := new(sync.WaitGroup)
@@ -35,7 +43,9 @@ func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 func qrHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	location := q.Get("location")
-	_ = location
+	qrcodeString := base64.StdEncoding.EncodeToString(token.GetQrCode(logIOUrl, location))
+	qrcode := QrCodeData{Qrcode: qrcodeString}
+	executeTemplate(w, "qr.html", qrcode)
 }
 
 func executeTemplate(w http.ResponseWriter, file string, data interface{}) {
