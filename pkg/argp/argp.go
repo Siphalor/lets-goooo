@@ -166,7 +166,15 @@ func (flagSet *FlagSet) PrintUsage(indent string) {
 	if len(flagSet.flags) > 0 {
 		fmt.Printf("%sFlags:\n", indent)
 
+		// The unique flags map is required because some flags are registered under multiple names
+		uniqueFlags := make(map[*Flag]bool, len(flagSet.flags))
 		for _, flag := range flagSet.flags {
+			_, exists := uniqueFlags[flag]
+			if exists {
+				continue
+			}
+			uniqueFlags[flag] = true
+
 			flagVariants := make([]string, len(flag.Names))
 			for i, name := range flag.Names {
 				if len(name) == 1 {
