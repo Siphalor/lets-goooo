@@ -110,15 +110,17 @@ func (flagSet *FlagSet) ParseFlags(args []string) error {
 				return flagSet.handleError("unknown flag %s", arg)
 			}
 			if currentFlag != nil {
-				boolFlagValue, success := currentFlag.Value.(*boolValue)
-				if success {
-					*boolFlagValue = true
-					currentFlag = flag
-					continue
-				}
 				return flagSet.handleError("unknown flag %s in value of other flag %s", arg, currentFlag.Names[0])
 			}
-			currentFlag = flag
+			if flag.TakesValue() {
+				currentFlag = flag
+			} else {
+				boolFlagValue, isBool := flag.Value.(*boolValue)
+				if isBool {
+					*boolFlagValue = true
+				}
+				currentFlag = nil
+			}
 			continue
 		}
 
@@ -183,14 +185,14 @@ func (flagSet *FlagSet) PrintUsage(indent string) {
 					flagVariants[i] = "--" + name
 				}
 			}
-			defaultBool, isBool := flag.Default.(*boolValue)
-			if isBool && !bool(*defaultBool) {
-				fmt.Printf("%s  %s:\n", indent, strings.Join(flagVariants, ", "))
-			} else {
+			takesValue := flag.TakesValue()
+			if takesValue {
 				fmt.Printf("%s  %s <value>:\n", indent, strings.Join(flagVariants, ", "))
+			} else {
+				fmt.Printf("%s  %s:\n", indent, strings.Join(flagVariants, ", "))
 			}
 			fmt.Printf("%s    %s\n", indent, flag.Usage)
-			if *flag.DefaultText != "" {
+			if takesValue && *flag.DefaultText != "" {
 				fmt.Printf("%s    Default: %s\n", indent, *flag.DefaultText)
 			}
 		}
@@ -209,6 +211,11 @@ type Flag struct {
 	FlagBuildArgs
 	Default FlagValue
 	Value   FlagValue
+}
+
+func (flag *Flag) TakesValue() bool {
+	boolDefault, isBool := flag.Default.(*boolValue)
+	return !isBool || bool(*boolDefault)
 }
 
 // FlagValue can be used in a Flag to parse/serialize values.
