@@ -1,7 +1,7 @@
 from: markdown
 
 input-files:
-  - proposal.md
+  - index.md
 
 standalone: true
 
