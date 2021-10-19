@@ -158,7 +158,7 @@ func (flagSet *FlagSet) PrintUsage(indent string) {
 		fmt.Printf("%sPositional arguments:\n", indent)
 		for _, flag := range flagSet.positional {
 			fmt.Printf("%s  %10s: %s\n", indent, flag.Names[0], flag.Usage)
-			if len(*flag.DefaultText) > 0 {
+			if *flag.DefaultText != "" {
 				fmt.Printf("%s            Default: %s\n", indent, *flag.DefaultText)
 			}
 		}
@@ -183,9 +183,16 @@ func (flagSet *FlagSet) PrintUsage(indent string) {
 					flagVariants[i] = "--" + name
 				}
 			}
-			fmt.Printf("%s  %s:\n", indent, strings.Join(flagVariants, ", "))
+			defaultBool, isBool := flag.Default.(*boolValue)
+			if isBool && !bool(*defaultBool) {
+				fmt.Printf("%s  %s:\n", indent, strings.Join(flagVariants, ", "))
+			} else {
+				fmt.Printf("%s  %s <value>:\n", indent, strings.Join(flagVariants, ", "))
+			}
 			fmt.Printf("%s    %s\n", indent, flag.Usage)
-			fmt.Printf("%s    Default: %s\n", indent, *flag.DefaultText)
+			if *flag.DefaultText != "" {
+				fmt.Printf("%s    Default: %s\n", indent, *flag.DefaultText)
+			}
 		}
 	}
 }
