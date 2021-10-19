@@ -5,13 +5,19 @@ import (
 	qrcode "github.com/skip2/go-qrcode"
 )
 
-func GetQrCode(url string, location string) []byte {
-	token := CreateToken(location)
+func GetQrCode(url string, location string) ([]byte, error) {
+
+	token, err := CreateToken(location)
+	if err != nil {
+		return []byte{}, fmt.Errorf("could not create Token: %w", err)
+	}
+
 	var png []byte
 	//ToDo: Dynamisch logIn/Out durch Cookie
-	png, err := qrcode.Encode(url+"/login/"+token, qrcode.Medium, 256)
+	png, err = qrcode.Encode(url+"/login/"+token, qrcode.Medium, 256)
 	if err != nil {
-		fmt.Printf("Could not create QR Code: %v", err)
+		return []byte{}, fmt.Errorf("could not create QR Code: %w", err)
 	}
-	return png
+
+	return png, nil
 }
