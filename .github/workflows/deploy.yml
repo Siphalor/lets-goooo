@@ -1,8 +1,7 @@
 name: Deploy Pandoc
 
 on:
-  push:
-    branches: documentation
+  - push
 
 jobs:
   deploy:
