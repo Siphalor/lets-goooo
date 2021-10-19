@@ -47,20 +47,20 @@ func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func loginHandler(w http.ResponseWriter, _ *http.Request) {
-	executeTemplate(w, "default.html", nil)
+	executeTemplate(w, "default.html", nil) //TODO
 }
 
 func logoutHandler(w http.ResponseWriter, _ *http.Request) {
-	executeTemplate(w, "default.html", nil)
+	executeTemplate(w, "default.html", nil) //TODO
 }
 
 func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	location := strings.ToUpper(q.Get("location"))
 	if len(location) != 3 {
-		fmt.Printf("abbreviation has to be 3 characters, not %v", len(location))
+		log.Printf("abbreviation has to be 3 characters, not %#v \n", len(location))
 		if _, err := w.Write([]byte("couldn't resolve location-abbreviation. Need 3 characters")); err != nil {
-			fmt.Printf("failed to write qrcode to Response: %v", err)
+			log.Printf("failed to write qrcode to Response: %#v \n", err)
 			return
 		}
 		return
@@ -68,12 +68,12 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 
 	qrcode, err := token.GetQrCode(logIOUrl, location)
 	if err != nil {
-		fmt.Printf("failed to get qrcode: %v", err)
+		log.Printf("failed to get qrcode: %#v \n", err)
 		return
 	}
 
 	if _, err := w.Write(qrcode); err != nil {
-		fmt.Printf("failed to write qrcode to Response: %v", err)
+		log.Printf("failed to write qrcode to Response: %v \n", err)
 		return
 	}
 }
@@ -86,12 +86,12 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 func executeTemplate(w http.ResponseWriter, file string, data interface{}) {
 	tempDefault, err := template.ParseFiles(file)
 	if err != nil {
-		fmt.Printf("failed to parse template: %#v", err)
+		log.Printf("failed to parse template: %#v \n", err)
 		return
 	}
-	err = tempDefault.Execute(w, data)
-	if err != nil {
-		fmt.Printf("failed to execute template: %#v", err)
+
+	if err := tempDefault.Execute(w, data); err != nil {
+		log.Printf("failed to execute template: %#v \n", err)
 		return
 	}
 }
