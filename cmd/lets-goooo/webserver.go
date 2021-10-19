@@ -65,13 +65,13 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		return
 	}
-	qrcode := token.GetQrCode(logIOUrl, location)
-	/*
-		if qrcodeString, err := token.GetQrCode(logIOUrl, location); err != nil {
-			fmt.Printf("failed to get qrcode: %v", err)
-			return
-		}
-	*/
+
+	qrcode, err := token.GetQrCode(logIOUrl, location)
+	if err != nil {
+		fmt.Printf("failed to get qrcode: %v", err)
+		return
+	}
+
 	if _, err := w.Write(qrcode); err != nil {
 		fmt.Printf("failed to write qrcode to Response: %v", err)
 		return
