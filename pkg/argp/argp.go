@@ -149,9 +149,9 @@ func (flagSet *FlagSet) ParseFlags(args []string) error {
 // handleError handles a parse error.
 func (flagSet *FlagSet) handleError(format string, args ...interface{}) error {
 	cappedFormat := strings.ToUpper(string(format[0])) + format[1:] + "\n"
-	fmt.Printf(cappedFormat, args)
+	fmt.Printf(cappedFormat, args...)
 	flagSet.PrintUsage("")
-	return fmt.Errorf(format+"\n", args)
+	return fmt.Errorf(format+"\n", args...)
 }
 
 // PrintUsage prints usage information for the FlagSet.
