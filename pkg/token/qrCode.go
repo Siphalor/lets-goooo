@@ -13,8 +13,7 @@ func GetQrCode(url string, location string) ([]byte, error) {
 	}
 
 	var png []byte
-	//ToDo: Dynamisch logIn/Out durch Cookie
-	png, err = qrcode.Encode(url+"/login/"+token, qrcode.Medium, 256)
+	png, err = qrcode.Encode(url+token, qrcode.Medium, 256)
 	if err != nil {
 		return []byte{}, fmt.Errorf("could not create QR Code: %w", err)
 	}

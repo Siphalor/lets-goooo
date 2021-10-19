@@ -7,16 +7,16 @@ import (
 	"time"
 )
 
+const ValidTime = 120
+
 func CreateToken(location string) (string, error) {
 
-	ValidTime := 120
-
-	timestamp := fmt.Sprintf("%12v:%s", int64(time.Now().Unix())/int64(ValidTime)*int64(ValidTime), location)
+	unencryptedToken := fmt.Sprintf("%12v:%s", int64(time.Now().Unix())/int64(ValidTime)*int64(ValidTime), location)
 
 	//ToDO: Startparameter KEY
 	keyn := "thisis32bitlongpassphraseimusing"
 
-	return EncryptAES([]byte(keyn), timestamp)
+	return EncryptAES([]byte(keyn), unencryptedToken)
 }
 
 func EncryptAES(key []byte, plaintext string) (string, error) {
