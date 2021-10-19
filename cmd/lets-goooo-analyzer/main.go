@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/argp"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
@@ -11,7 +12,6 @@ import (
 )
 
 func main() {
-	// Subcommand structure based on https://gobyexample.com/command-line-subcommands
 	commandGroup := argp.CreateSubcommandGroup()
 
 	helpCmd := commandGroup.AddSubcommand(argp.CreateSubcommand("help", "Prints this help text"))
@@ -28,6 +28,22 @@ func main() {
 		Names: []string{"address", "a"},
 		Usage: "Find the person by their address",
 	}
+	outputFileProtoArgDefault := "<journal>-export.csv"
+	outputFileProtoArg := argp.FlagBuildArgs{
+		Names:       []string{"output-file", "output", "o"},
+		Usage:       "The CSV output file",
+		DefaultText: &outputFileProtoArgDefault,
+	}
+	outputFilePermsProtoArgDefault := "0660"
+	outputFilePermsProtoArg := argp.FlagBuildArgs{
+		Names:       []string{"output-file-perms", "output-perms"},
+		Usage:       "The permission mask for the output file",
+		DefaultText: &outputFilePermsProtoArgDefault,
+	}
+	csvHeaderProtoArg := argp.FlagBuildArgs{
+		Names: []string{"csv-headers", "csv-header-row"},
+		Usage: "Whether the CSV file will be prefixed with a header line",
+	}
 
 	showPersonCmd := commandGroup.AddSubcommand(argp.CreateSubcommand("show-person", "Show the person with the given name"))
 	showPersonJournal := showPersonCmd.PositionalString(journalProtoArg, "")
@@ -38,21 +54,19 @@ func main() {
 	viewContactsJournal := viewContactsCmd.PositionalString(journalProtoArg, "")
 	viewContactsName := viewContactsCmd.String(personNameProtoArg, "")
 	viewContactsAddress := viewContactsCmd.String(personAddressProtoArg, "")
+	viewContactsCSV := viewContactsCmd.Bool(argp.FlagBuildArgs{
+		Names: []string{"csv"},
+		Usage: "Output as CSV data, opposed to a human readable format",
+	}, false)
+	viewContactsCSVHeaders := viewContactsCmd.Bool(csvHeaderProtoArg, false)
+	viewContactsOutput := viewContactsCmd.String(outputFileProtoArg, "")
+	viewContactsOutputPerms := viewContactsCmd.Uint(outputFilePermsProtoArg, 0660)
 
 	exportCmd := commandGroup.AddSubcommand(argp.CreateSubcommand("export", "Export the journal to CSV"))
 	exportJournal := exportCmd.PositionalString(journalProtoArg, "")
-	exportOutputDefault := "<journal>-export.csv"
-	exportOutput := exportCmd.String(argp.FlagBuildArgs{
-		Names:       []string{"output-file", "output", "o"},
-		Usage:       "The CSV output file",
-		DefaultText: &exportOutputDefault,
-	}, "")
-	exportOutputPermsDefault := "0660"
-	exportOutputPerms := exportCmd.Uint(argp.FlagBuildArgs{
-		Names:       []string{"output-file-perms", "output-perms"},
-		Usage:       "The permission mask for the output file",
-		DefaultText: &exportOutputPermsDefault,
-	}, 0660)
+	exportCSVHeaders := exportCmd.Bool(csvHeaderProtoArg, false)
+	exportOutput := exportCmd.String(outputFileProtoArg, "")
+	exportOutputPerms := exportCmd.Uint(outputFilePermsProtoArg, 0660)
 
 	subcommand, err := commandGroup.ParseSubcommand(os.Args)
 	if err != nil {
@@ -84,7 +98,27 @@ func main() {
 	case viewContactsCmd:
 		j := readJournal(*viewContactsJournal)
 		user := findUser(j, *viewContactsName, *viewContactsAddress)
-		fmt.Printf("Showing contacts for user %s (%s):\n", user.Name, user.Address)
+
+		writer := openOutput(*viewContactsOutput, *viewContactsOutputPerms)
+		defer func() {
+			err := writer.Close()
+			if err != nil {
+				println("Failed to close output")
+			}
+		}()
+
+		err := error(nil)
+		if *viewContactsCSV {
+			if *viewContactsCSVHeaders {
+				err = util.WriteString(writer, "Duration in seconds,Location,Contact Name,Contact Address\n")
+			}
+		} else {
+			err = util.WriteString(writer, fmt.Sprintf("Showing contacs for user %s (%s):\n", user.Name, user.Address))
+		}
+		if err != nil {
+			fmt.Printf("Failed to write to output: %v", err)
+			os.Exit(500)
+		}
 
 		userLogin := (*journal.Event)(nil)
 		lastLocHeading := (*journal.Location)(nil)
@@ -95,17 +129,31 @@ func main() {
 		}
 
 		printContact := func(otherUser *journal.User, login *journal.Event, logout *journal.Event) {
-			if lastLocHeading == nil {
-				fmt.Printf("%s:\n", login.Location.Name)
+			if !*viewContactsCSV && lastLocHeading == nil {
+				err := util.WriteString(writer, login.Location.Name+":\n")
+				if err != nil {
+					fmt.Printf("Failed to write to output: %v", err)
+					os.Exit(500)
+				}
 				lastLocHeading = login.Location
 			}
 			duration := time.Unix(logout.Timestamp, 0).Sub(time.Unix(login.Timestamp, 0))
 			secs := int(duration.Seconds())
-			fmt.Printf(
-				"  %2dh %2dm %2ds - %s - %s\n",
-				secs/3600, secs/60%60, secs%60,
-				otherUser.Name, otherUser.Address,
-			)
+
+			err := error(nil)
+			if *viewContactsCSV {
+				err = util.WriteString(writer, fmt.Sprintf("%d,%s,\"%s\",\"%s\"\n", secs, login.Location.Name, otherUser.Name, otherUser.Address))
+			} else {
+				err = util.WriteString(writer, fmt.Sprintf(
+					"  %2dh %2dm %2ds - %s - %s\n",
+					secs/3600, secs/60%60, secs%60,
+					otherUser.Name, otherUser.Address,
+				))
+			}
+			if err != nil {
+				fmt.Printf("Failed to write to output: %v", err)
+				os.Exit(500)
+			}
 		}
 
 		events := j.GetEvents()
@@ -151,13 +199,23 @@ func main() {
 		if *exportOutput == "" {
 			*exportOutput = journalPath + "-export.csv"
 		}
-		file, err := os.OpenFile(*exportOutput, os.O_WRONLY|os.O_TRUNC|os.O_CREATE, os.FileMode(*exportOutputPerms))
-		if err != nil {
-			fmt.Printf("Failed to open output file: %v\n", err)
-			os.Exit(101)
+		writer := openOutput(*exportOutput, *exportOutputPerms)
+		defer func() {
+			err := writer.Close()
+			if err != nil {
+				println("Failed to close output")
+			}
+		}()
+
+		if *exportCSVHeaders {
+			err := util.WriteString(writer, "Event type,Location,Timestamp,Name,Address\n")
+			if err != nil {
+				fmt.Printf("Failed to write to output: %v", err)
+				os.Exit(500)
+			}
 		}
 		for _, event := range j.GetEvents() {
-			err := util.WriteString(file, fmt.Sprintf(
+			err := util.WriteString(writer, fmt.Sprintf(
 				"%s,%s,%d,%s,%s\n",
 				event.EventType.Name(),
 				event.Location.Name,
@@ -183,6 +241,17 @@ func readJournal(path string) *journal.Journal {
 	return &readJournal
 }
 
+func openOutput(outputArg string, outputPermsArg uint) io.WriteCloser {
+	if outputArg == "" {
+		return os.Stdout
+	}
+	file, err := os.OpenFile(outputArg, os.O_WRONLY|os.O_TRUNC|os.O_APPEND|os.O_CREATE, os.FileMode(outputPermsArg))
+	if err != nil {
+		fmt.Printf("Failed to open output file %s: %v", outputArg, err)
+	}
+	return file
+}
+
 func findUser(j *journal.Journal, nameFilter string, addressFilter string) *journal.User {
 	filters := 0
 	if nameFilter != "" {
@@ -194,7 +263,7 @@ func findUser(j *journal.Journal, nameFilter string, addressFilter string) *jour
 		filters++
 	}
 	if filters <= 0 {
-		fmt.Printf("Either a filter by name or by address must be specified")
+		println("Either a filter by name or by address must be specified")
 		os.Exit(1)
 	}
 
