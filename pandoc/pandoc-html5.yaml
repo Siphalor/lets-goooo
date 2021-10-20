@@ -1,11 +1,14 @@
 from: markdown
+to: html5
+output-file: out/index.html
 
 input-files:
   - index.md
 
 standalone: true
 
+table-of-contents: true
+
 variables:
   monobackgroundcolor: "#ddd"
 
-table-of-contents: true

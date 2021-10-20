@@ -1,0 +1,23 @@
+from: markdown
+to: pdf
+output-file: out/doc.pdf
+
+input-files:
+  - index.md
+
+template: ./pandoc/pandoc-latex-template/eisvogel.tex
+
+standalone: true
+
+table-of-contents: true
+
+variables:
+  numbersections: true
+  # Template
+  titlepage: true
+  titlepage-rule-color: 00aed8
+  titlepage-rule-height: 16
+    #titlepage-color: 00aed8
+  logo: ./src/logoooo.png
+  logo-width: 8cm
+  toc-own-page: true
