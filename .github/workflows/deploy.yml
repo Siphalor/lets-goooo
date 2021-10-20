@@ -4,9 +4,9 @@ on:
   - push
 
 jobs:
-  deploy:
-     runs-on: ubuntu-latest
-     steps:
+  plantuml:
+    runs-on: ubuntu-latest
+    steps:
       - name: Checkout
         uses: actions/checkout@v2
         with:
@@ -27,12 +27,43 @@ jobs:
         uses: cloudbees/plantuml-github-action@master
         with:
           args: -v -tpng out/uml.puml
-      - name: Build PDF
-        uses: docker://pandoc/latex:2.11
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v2
+        if: ${{ !env.ACT }}
         with:
-          args: -d pandoc/pandoc-pdf
+          name: plantuml
+          path: |
+            out/*.png
+  pandoc:
+     runs-on: ubuntu-latest
+     needs:
+       - plantuml
+     container: 
+       image: pandoc/ubuntu-latex:2.11
+     steps:
+      - name: Setup env
+        run: |
+          apt update && apt install -y git
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+          submodules: 'recursive'
+      - name: Load UML images
+        uses: actions/download-artifact@v2
+        if: ${{ !env.ACT }}
+        with:
+          name: plantuml
+          path: img/plantuml
+      - name: Build PDF
+        run: |
+          mkdir -p out
+          PATH=$PATH:/opt/texlive/texdir/bin/x86_64-linux
+          chmod +x ./pandoc/workflow.sh
+          ./pandoc/workflow.sh
       - name: Upload artifact
         uses: actions/upload-artifact@v2
+        if: ${{ !env.ACT }}
         with:
           name: documentation
           path: |

@@ -12,6 +12,8 @@ linestretch: 1.5
 
 # Architekturdokumentation
 
+![UML diagram](img/plantuml/uml.png)
+
 # Anwenderdokumentation
 
 # Betriebsdokumentation
