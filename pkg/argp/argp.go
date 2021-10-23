@@ -25,7 +25,7 @@ func (sg *SubcommandGroup) ParseSubcommand(args []string) (*Subcommand, error) {
 	if len(args) < 2 { // The first arg is always the call to the executable, so minimum of two
 		fmt.Println("A subcommand is required.")
 		sg.PrintUsage("")
-		return nil, fmt.Errorf("no subcommand speicified")
+		return nil, fmt.Errorf("no subcommand specified")
 	}
 
 	if args[1] == "--help" || args[1] == "-h" {
