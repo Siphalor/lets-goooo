@@ -24,6 +24,20 @@ func TestSubcommandGroup_ParseSubcommand(t *testing.T) {
 	if sub, err := sg.ParseSubcommand([]string{"sub2"}); assert.NoError(t, err) {
 		assert.EqualValues(t, sub2, sub)
 	}
+
+	//  ___
+	// | __|_ _ _ _ ___ _ _ ___
+	// | _|| '_| '_/ _ \ '_(_-<
+	// |___|_| |_| \___/_| /__/
+
+	_, err := sg.ParseSubcommand([]string{})
+	assert.EqualError(t, err, "no subcommand specified")
+	_, err = sg.ParseSubcommand([]string{"unknown"})
+	assert.EqualError(t, err, "unknown subcommand \"unknown\"")
+	_, err = sg.ParseSubcommand([]string{"sub1", "--wtf"})
+	if assert.Error(t, err) {
+		assert.Contains(t, err.Error(), "failed to parse arguments of subcommand sub1")
+	}
 }
 
 func ExampleSubcommandGroup_PrintUsage() {

@@ -40,7 +40,7 @@ func (sg *SubcommandGroup) ParseSubcommand(args []string) (*Subcommand, error) {
 	if !exists {
 		fmt.Printf("Unknown subcommand %s.\n", args[0])
 		sg.PrintUsage("")
-		return nil, fmt.Errorf("unknown subcommand %s", args[0])
+		return nil, fmt.Errorf("unknown subcommand \"%s\"", args[0])
 	}
 
 	err := subcommand.ParseFlags(args[1:]) // Parse all further args for the subcommand
