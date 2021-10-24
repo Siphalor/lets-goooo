@@ -28,7 +28,7 @@ jobs:
             fn=$(echo $f | sed "s/.\\///;y/\\//_/" )
             goplantuml -recursive $f > ../out/$fn.puml
           done
-          goplantuml -recursive src > ../out/all.puml
+          goplantuml -recursive . > ../out/all.puml
       - name: Generate UML PNG
         uses: cloudbees/plantuml-github-action@master
         with:
