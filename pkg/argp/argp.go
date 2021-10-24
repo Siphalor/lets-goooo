@@ -11,6 +11,8 @@ import (
 type SubcommandGroup struct {
 	// subcommands is a map from the identifiers (names) of the subcommands to said subcommands
 	subcommands map[string]*Subcommand
+	// orderedSubcommands is a companion to subcommands to retain the order
+	orderedSubcommands []*Subcommand
 }
 
 // CreateSubcommandGroup creates a new subcommand group.
@@ -22,26 +24,26 @@ func CreateSubcommandGroup() *SubcommandGroup {
 
 // ParseSubcommand parses the given arguments and resolves the called subcommand.
 func (sg *SubcommandGroup) ParseSubcommand(args []string) (*Subcommand, error) {
-	if len(args) < 2 { // The first arg is always the call to the executable, so minimum of two
+	if len(args) < 1 { // The first arg is always the call to the executable, so minimum of two
 		fmt.Println("A subcommand is required.")
 		sg.PrintUsage("")
 		return nil, fmt.Errorf("no subcommand specified")
 	}
 
-	if args[1] == "--help" || args[1] == "-h" {
+	if args[0] == "--help" || args[0] == "-h" {
 		sg.PrintUsage("")
 		return nil, nil
 	}
 
 	// Look for a matching subcommand (case-insensitive)
-	subcommand, exists := sg.subcommands[strings.ToLower(args[1])]
+	subcommand, exists := sg.subcommands[strings.ToLower(args[0])]
 	if !exists {
-		fmt.Printf("Unknown subcommand %s.\n", args[1])
+		fmt.Printf("Unknown subcommand %s.\n", args[0])
 		sg.PrintUsage("")
-		return nil, fmt.Errorf("unknown subcommand %s", args[1])
+		return nil, fmt.Errorf("unknown subcommand %s", args[0])
 	}
 
-	err := subcommand.ParseFlags(args[2:]) // Parse all further args for the subcommand
+	err := subcommand.ParseFlags(args[1:]) // Parse all further args for the subcommand
 	if err != nil {
 		return nil, fmt.Errorf("failed to parse arguments of subcommand %s: %w", subcommand.Name, err)
 	}
@@ -52,8 +54,11 @@ func (sg *SubcommandGroup) ParseSubcommand(args []string) (*Subcommand, error) {
 func (sg *SubcommandGroup) PrintUsage(indent string) {
 	fmt.Printf("%sAvailable subcommands:\n", indent)
 	indent += "  "
-	for _, subcommand := range sg.subcommands {
-		fmt.Printf("%s%s: %s\n", indent, subcommand.Name, subcommand.Usage)
+	for _, subcommand := range sg.orderedSubcommands {
+		fmt.Printf("%s%s:\n", indent, subcommand.Name)
+		for _, line := range strings.Split(subcommand.Usage, "\n") {
+			fmt.Printf("%s  %s\n", indent, line)
+		}
 		subcommand.PrintUsage(indent + "  ")
 	}
 }
@@ -62,6 +67,7 @@ func (sg *SubcommandGroup) PrintUsage(indent string) {
 // It returns the given subcommand to allow easy assignment.
 func (sg *SubcommandGroup) AddSubcommand(subcommand *Subcommand) *Subcommand {
 	sg.subcommands[strings.ToLower(subcommand.Name)] = subcommand
+	sg.orderedSubcommands = append(sg.orderedSubcommands, subcommand)
 	return subcommand
 }
 
@@ -85,6 +91,8 @@ func CreateSubcommand(name string, usage string) *Subcommand {
 type FlagSet struct {
 	// flags is a map from the unique flag names to the actual Flag structs
 	flags map[string]*Flag
+	// orderedFlags is a companion to flags so the order of the flags get preserved
+	orderedFlags []*Flag
 	// positional defines the positional arguments in that exact order
 	positional []*Flag
 }
@@ -100,7 +108,7 @@ func CreateFlagSet() *FlagSet {
 func (flagSet *FlagSet) ParseFlags(args []string) error {
 	currentFlag := (*Flag)(nil) // The current flag - used to resolve values that follow a flag
 	pos := 0                    // The current index on positional arguments
-	for _, arg := range args {
+	for i, arg := range args {
 		if len(arg) > 1 && arg[0] == '-' { // Flag argument
 			stripped := arg[1:]
 			if stripped[0] == '-' { // Handle double dashes
@@ -114,10 +122,10 @@ func (flagSet *FlagSet) ParseFlags(args []string) error {
 					flagSet.PrintUsage("")
 					os.Exit(0)
 				}
-				return flagSet.handleError("unknown flag %s", arg)
+				return flagSet.handleError("unknown flag \"%s\"", arg)
 			}
 			if currentFlag != nil { // Found a flag while looking for a value of a previous flag
-				return flagSet.handleError("unknown flag %s in value of other flag %s", arg, currentFlag.Names[0])
+				return flagSet.handleError("unknown flag \"%s\" in value of other flag \"%s\"", arg, args[i-1])
 			}
 
 			if flag.TakesValue() { // The parsed flag requires a following value
@@ -135,7 +143,7 @@ func (flagSet *FlagSet) ParseFlags(args []string) error {
 		if currentFlag != nil { // Check if the last flag requires a trailing value
 			err := currentFlag.Value.FromString(arg)
 			if err != nil {
-				return flagSet.handleError("failed to parse value for flag %s = %s: %v", currentFlag.Names[0], arg, err)
+				return flagSet.handleError("failed to parse value for flag \"%s\" = \"%s\": %v", currentFlag.Name(), arg, err)
 			}
 			currentFlag = nil // No more values
 			continue
@@ -143,16 +151,21 @@ func (flagSet *FlagSet) ParseFlags(args []string) error {
 
 		// Check if there is still room for positional arguments
 		if len(flagSet.positional) <= pos {
-			return flagSet.handleError("Encountered additional positional argument %s", arg)
+			return flagSet.handleError("encountered additional positional argument \"%s\"", arg)
 		}
 
 		// Try to parse as the next positional argument
 		err := flagSet.positional[pos].Value.FromString(arg)
 		pos++
 		if err != nil {
-			return flagSet.handleError("failed to parse positional argument %s = %s: %v", currentFlag.Names[0], arg, err)
+			return flagSet.handleError("failed to parse positional argument \"%s\" = \"%s\": %v", flagSet.positional[pos].Name(), arg, err)
 		}
 	}
+
+	if currentFlag != nil {
+		return flagSet.handleError("trailing value is missing for argument \"%s\"", currentFlag.Name())
+	}
+
 	return nil
 }
 
@@ -162,7 +175,7 @@ func (flagSet *FlagSet) handleError(format string, args ...interface{}) error {
 	cappedFormat := strings.ToUpper(string(format[0])) + format[1:] + "\n"
 	fmt.Printf(cappedFormat, args...)
 	flagSet.PrintUsage("")
-	return fmt.Errorf(format+"\n", args...)
+	return fmt.Errorf(format, args...)
 }
 
 // PrintUsage prints usage information for the FlagSet.
@@ -171,10 +184,19 @@ func (flagSet *FlagSet) PrintUsage(indent string) {
 	if len(flagSet.positional) > 0 {
 		fmt.Printf("%sPositional arguments:\n", indent)
 		for _, flag := range flagSet.positional {
-			fmt.Printf("%s  %10s: %s\n", indent, flag.Names[0], flag.Usage)
+			if flag.Usage == "" {
+				fmt.Printf("%s  %s:\n", indent, flag.Name())
+			} else {
+				// print with correct indent
+				usageLines := strings.Split(flag.Usage, "\n")
+				fmt.Printf("%s  %s: %s\n", indent, flag.Name(), usageLines[0])
+				for i := 1; i < len(usageLines); i++ {
+					fmt.Printf("%s      %s\n", indent, usageLines[i])
+				}
+			}
 			// Only show default text if it's not empty - looks ugly otherwise
 			if *flag.DefaultText != "" {
-				fmt.Printf("%s            Default: %s\n", indent, *flag.DefaultText)
+				fmt.Printf("%s      Default: %s\n", indent, *flag.DefaultText)
 			}
 		}
 	}
@@ -183,13 +205,7 @@ func (flagSet *FlagSet) PrintUsage(indent string) {
 		fmt.Printf("%sFlags:\n", indent)
 
 		// The unique flags map is required because some flags are registered under multiple names
-		uniqueFlags := make(map[*Flag]bool, len(flagSet.flags))
-		for _, flag := range flagSet.flags {
-			_, exists := uniqueFlags[flag] // check if the flag has been printed already
-			if exists {
-				continue // if so, continue
-			}
-			uniqueFlags[flag] = true
+		for _, flag := range flagSet.orderedFlags {
 
 			// Collect all flag names (aliases)
 			flagVariants := make([]string, len(flag.Names))
@@ -207,10 +223,16 @@ func (flagSet *FlagSet) PrintUsage(indent string) {
 			} else {
 				fmt.Printf("%s  %s:\n", indent, strings.Join(flagVariants, ", "))
 			}
-			fmt.Printf("%s    %s\n", indent, flag.Usage)
+
+			// print with correct indent
+			usageLines := strings.Split(flag.Usage, "\n")
+			for _, line := range usageLines {
+				fmt.Printf("%s      %s\n", indent, line)
+			}
+
 			// Only show default text if it's not empty and if it requires a value - looks ugly otherwise
 			if takesValue && *flag.DefaultText != "" {
-				fmt.Printf("%s    Default: %s\n", indent, *flag.DefaultText)
+				fmt.Printf("%s      Default: %s\n", indent, *flag.DefaultText)
 			}
 		}
 	}
@@ -225,6 +247,15 @@ type FlagBuildArgs struct {
 	Usage string
 	// DefaultText is an override for Default.String() to allow special casing
 	DefaultText *string
+}
+
+// Name returns the first defined name, or <arg> if none is available
+func (flagBuildArgs FlagBuildArgs) Name() string {
+	if len(flagBuildArgs.Names) > 0 {
+		return flagBuildArgs.Names[0]
+	} else {
+		return "<arg>"
+	}
 }
 
 // Flag represents the metadata and values of a flag.
@@ -324,6 +355,7 @@ func (flagSet *FlagSet) addFlag(flag *Flag) {
 		defText := flag.Default.String()
 		flag.DefaultText = &defText
 	}
+	flagSet.orderedFlags = append(flagSet.orderedFlags, flag)
 	for _, name := range flag.Names {
 		flagSet.flags[name] = flag
 	}

@@ -76,7 +76,7 @@ func main() {
 	exportOutputPerms := exportCmd.Uint(outputFilePermsProtoArg, 0660)
 
 	// Parse the system arguments
-	subcommand, err := commandGroup.ParseSubcommand(os.Args)
+	subcommand, err := commandGroup.ParseSubcommand(os.Args[1:])
 	if err != nil { // Errors are already printed, no further error handling required
 		return
 	}
