@@ -21,12 +21,18 @@ jobs:
         run: |
           go install github.com/jfeliu007/goplantuml/cmd/goplantuml@v1.5.2
       - run: mkdir out
-      - name: Create UML data
-        run: goplantuml -recursive src > out/uml.puml
+      - name: Create UML PNGs
+        run: |
+          cd src
+          for f in $(find -mindepth 2 -maxdepth 2 -type d); do
+            fn=$(echo $f | sed "s/.\\///;y/\\//_/" )
+            goplantuml -recursive $f > ../out/$fn.puml
+          done
+          goplantuml -recursive src > ../out/all.puml
       - name: Generate UML PNG
         uses: cloudbees/plantuml-github-action@master
         with:
-          args: -v -tpng out/uml.puml
+          args: -v -tpng out/*.puml
       - name: Upload artifacts
         uses: actions/upload-artifact@v2
         if: ${{ !env.ACT }}

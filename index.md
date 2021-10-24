@@ -12,7 +12,13 @@ linestretch: 1.5
 
 # Architekturdokumentation
 
-![UML diagram](img/plantuml/uml.png)
+![UML-Klassendiagramm für des gesamten Projekts](img/plantuml/all.png)
+
+## Journal
+![UML-Klassendiagramm des `journal`-Packages](img/plantuml/pkg_journal.png)
+
+## Util
+![UML-Klassendiagramm des `util`-Packages](img/plantuml/pkg_util.png)
 
 # Anwenderdokumentation
 
