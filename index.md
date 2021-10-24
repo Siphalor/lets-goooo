@@ -12,7 +12,9 @@ linestretch: 1.5
 
 # Architekturdokumentation
 
-![UML-Klassendiagramm für des gesamten Projekts](img/plantuml/all.png)
+![UML-Klassendiagramm für das gesamte Projekt](img/plantuml/all.png){#fig:uml-all}
+
+In @fig:all ist ein Klassendiagramm für das gesamte Projekt zu sehen.
 
 ## Journal
 ![UML-Klassendiagramm des `journal`-Packages](img/plantuml/pkg_journal.png)

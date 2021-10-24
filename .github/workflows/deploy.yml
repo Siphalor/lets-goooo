@@ -43,18 +43,22 @@ jobs:
   pandoc:
      runs-on: ubuntu-latest
      needs:
-       - plantuml
+      - plantuml
      container: 
        image: pandoc/ubuntu-latex:2.11
      steps:
       - name: Setup env
         run: |
-          apt update && apt install -y git
+          apt update && apt install -y git wget xz-utils
       - name: Checkout
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
           submodules: 'recursive'
+      - name: Prepare Pandoc Crossref
+        run: |
+          wget -O pandoc/pandoc-crossref-Linux.tar.xz https://github.com/lierdakil/pandoc-crossref/releases/latest/download/pandoc-crossref-Linux.tar.xz
+          tar --xz -C pandoc -xf pandoc/pandoc-crossref-Linux.tar.xz
       - name: Load UML images
         uses: actions/download-artifact@v2
         if: ${{ !env.ACT }}
