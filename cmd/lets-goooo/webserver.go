@@ -22,12 +22,12 @@ func RunWebservers() {
 	wait := new(sync.WaitGroup)
 	wait.Add(2)
 	go func() {
-		handlers := map[string]http.HandlerFunc{
+		handler := map[string]http.HandlerFunc{
 			"/":       defaultHandler,
 			"/login":  loginHandler,
 			"/logout": logoutHandler,
 		}
-		CreateWebserver(443, handlers)
+		RunWebserver(CreateWebserver(443, handler))
 		wait.Done()
 	}()
 	time.AfterFunc(2*time.Second, func() {
@@ -36,7 +36,7 @@ func RunWebservers() {
 			"/qr.png": qrPngHandler,
 			"/qr":     qrHandler,
 		}
-		CreateWebserver(4443, handler)
+		RunWebserver(CreateWebserver(4443, handler))
 		wait.Done()
 	})
 	wait.Wait()
@@ -57,6 +57,16 @@ func logoutHandler(w http.ResponseWriter, _ *http.Request) {
 func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 	q := r.URL.Query()
 	location := strings.ToUpper(q.Get("location"))
+
+	if location == "" {
+		log.Printf("there was no given location: %#v \n", location)
+		if _, err := w.Write([]byte("no given location")); err != nil {
+			log.Printf("failed to write qrcode to Response: %#v \n", err)
+			return
+		}
+		return
+	}
+
 	if len(location) != 3 {
 		log.Printf("abbreviation has to be 3 characters, not %#v \n", len(location))
 		if _, err := w.Write([]byte("couldn't resolve location-abbreviation. Need 3 characters")); err != nil {
@@ -73,7 +83,7 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if _, err := w.Write(qrcode); err != nil {
-		log.Printf("failed to write qrcode to Response: %v \n", err)
+		log.Printf("failed to write qrcode to Response: %#v \n", err)
 		return
 	}
 }
@@ -83,6 +93,7 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "qr.html", data)
 }
 
+//creates a Template from a given file and responses with the
 func executeTemplate(w http.ResponseWriter, file string, data interface{}) {
 	tempDefault, err := template.ParseFiles(file)
 	if err != nil {
@@ -96,7 +107,7 @@ func executeTemplate(w http.ResponseWriter, file string, data interface{}) {
 	}
 }
 
-func CreateWebserver(port int, handlers map[string]http.HandlerFunc) {
+func CreateWebserver(port int, handlers map[string]http.HandlerFunc) *http.Server {
 	mux := http.NewServeMux()
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
@@ -109,6 +120,10 @@ func CreateWebserver(port int, handlers map[string]http.HandlerFunc) {
 		Handler: mux,
 	}
 
-	log.Fatalln(server.ListenAndServeTLS("certification/cert.pem", "certification/key.pem"))
+	return &server
 
+}
+
+func RunWebserver(server *http.Server) {
+	log.Fatalln(server.ListenAndServeTLS("certification/cert.pem", "certification/key.pem"))
 }
