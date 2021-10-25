@@ -74,6 +74,10 @@ func main() {
 	exportCSVHeaders := exportCmd.Bool(csvHeaderProtoArg, false)
 	exportOutput := exportCmd.String(outputFileProtoArg, "")
 	exportOutputPerms := exportCmd.Uint(outputFilePermsProtoArg, 0660)
+	exportLocation := exportCmd.String(argp.FlagBuildArgs{
+		Names: []string{"location", "loc", "l"},
+		Usage: "Filter the events by a location, given either as code (three letters) or by the full name",
+	}, "")
 
 	// Parse the system arguments
 	subcommand, err := commandGroup.ParseSubcommand(os.Args[1:])
@@ -212,6 +216,26 @@ func main() {
 		}
 
 	case exportCmd:
+		var locationFilter *journal.Location = nil
+		if *exportLocation != "" {
+			location, exists := journal.Locations[*exportLocation]
+			if exists {
+				locationFilter = location
+			} else {
+				for _, loc := range journal.Locations {
+					if strings.ToLower(loc.Name) == strings.ToLower(*exportLocation) {
+						locationFilter = loc
+						break
+					}
+				}
+
+				if locationFilter == nil {
+					fmt.Printf("Failed to resolve location \"%s\"\n", *exportLocation)
+					os.Exit(404)
+				}
+			}
+		}
+
 		journalPath := *exportJournal
 		j := readJournal(journalPath)
 		if *exportOutput == "" { // set a default output file name
@@ -233,6 +257,11 @@ func main() {
 			}
 		}
 		for _, event := range j.GetEvents() {
+			if locationFilter != nil {
+				if event.Location != locationFilter {
+					continue
+				}
+			}
 			err := util.WriteString(writer, fmt.Sprintf(
 				"%s,%s,%d,%s,%s\n",
 				event.EventType.Name(),
