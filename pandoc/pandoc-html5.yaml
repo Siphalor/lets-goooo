@@ -10,5 +10,9 @@ standalone: true
 table-of-contents: true
 
 variables:
+  numbersections: true
+
   monobackgroundcolor: "#ddd"
+
+  crossrefYaml: ./pandoc/pandoc-crossref.yaml
 

@@ -21,3 +21,5 @@ variables:
   logo: ./src/logoooo.png
   logo-width: 8cm
   toc-own-page: true
+
+  crossrefYaml: ./pandoc/pandoc-crossref.yaml
