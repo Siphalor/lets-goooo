@@ -22,4 +22,5 @@ variables:
   logo-width: 8cm
   toc-own-page: true
 
+metadata: 
   crossrefYaml: ./pandoc/pandoc-crossref.yaml

@@ -14,5 +14,6 @@ variables:
 
   monobackgroundcolor: "#ddd"
 
+metadata: 
   crossrefYaml: ./pandoc/pandoc-crossref.yaml
 
