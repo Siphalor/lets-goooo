@@ -6,12 +6,14 @@ import (
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
 	"log"
 	"net/http"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
 )
 
-var logIOUrl = "https://localhost"
+//TODO get from config
+var logIOUrl = "https://localhost:4443/"
 
 type QrCodeUrl struct {
 	PngUrl   string
@@ -27,7 +29,7 @@ func RunWebservers() {
 			"/login":  loginHandler,
 			"/logout": logoutHandler,
 		}
-		RunWebserver(CreateWebserver(443, handler))
+		RunWebserver(CreateWebserver(4443, handler))
 		wait.Done()
 	}()
 	time.AfterFunc(2*time.Second, func() {
@@ -36,7 +38,7 @@ func RunWebservers() {
 			"/qr.png": qrPngHandler,
 			"/qr":     qrHandler,
 		}
-		RunWebserver(CreateWebserver(4443, handler))
+		RunWebserver(CreateWebserver(443, handler))
 		wait.Done()
 	})
 	wait.Wait()
@@ -61,7 +63,7 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 	if location == "" {
 		log.Printf("there was no given location: %#v \n", location)
 		if _, err := w.Write([]byte("no given location")); err != nil {
-			log.Printf("failed to write qrcode to Response: %#v \n", err)
+			log.Printf("failed to write qrcode to Response: %#v \n %#v \n", err, r)
 			return
 		}
 		return
@@ -125,5 +127,13 @@ func CreateWebserver(port int, handlers map[string]http.HandlerFunc) *http.Serve
 }
 
 func RunWebserver(server *http.Server) {
-	log.Fatalln(server.ListenAndServeTLS("certification/cert.pem", "certification/key.pem"))
+	workdir := GetFilePath("cmd")
+	log.Fatalln(server.ListenAndServeTLS(workdir+"certification/cert.pem", workdir+"certification/key.pem"))
+}
+
+func GetFilePath(search string) string {
+	_, filename, _, _ := runtime.Caller(0)
+	index := strings.LastIndex(filename, "cmd")
+	workdir := filename[0:index]
+	return workdir
 }

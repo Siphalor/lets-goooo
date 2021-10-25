@@ -91,7 +91,7 @@ func TestExecuteTemplate(t *testing.T) {
 	buf.Reset()
 }
 
-func TestCreateWebserver(t *testing.T) {
+func TestCreateRunWebserver(t *testing.T) {
 	//Turn of ssl check, to avoid self-signed certificates error
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 
