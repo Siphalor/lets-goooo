@@ -16,13 +16,16 @@ type Journal struct {
 
 // ReadJournal reads in a Journal from a journal file.
 func ReadJournal(filepath string) (Journal, error) {
+	if isFile, err := util.FileExists(filepath); err != nil || !isFile {
+		return Journal{}, fmt.Errorf("\"%s\" is not a valid file (%w)", filepath, err)
+	}
 	file, err := os.OpenFile(filepath, os.O_RDONLY, 0777)
 	if err != nil {
 		return Journal{}, fmt.Errorf("failed to open journal file %s: %w", filepath, err)
 	}
 	journal := Journal{
 		users:  make(map[string]*User, 100),
-		events: make([]Event, 1000),
+		events: make([]Event, 0, 1000),
 	}
 	scanner := bufio.NewScanner(file)
 	for scanner.Scan() {
@@ -33,7 +36,7 @@ func ReadJournal(filepath string) (Journal, error) {
 			if err != nil {
 				return journal, fmt.Errorf("failed to read journal User line \"%s\": %w", line, err)
 			}
-			journal.users[string(util.Hash(user))] = &user
+			journal.users[string(user.Hash())] = &user
 		case uint8(LOGIN), uint8(LOGOUT):
 			entry, err := ParseEventJournalEntry(EventType(line[0]), line[1:], &journal.users)
 			if err != nil {

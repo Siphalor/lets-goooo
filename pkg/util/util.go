@@ -21,6 +21,13 @@ func Hash(val interface{}) []byte {
 	return hash.Sum(nil)
 }
 
+// HashString creates a SHA1 hash from the given string
+func HashString(val string) []byte {
+	hash := sha1.New()
+	hash.Write([]byte(val))
+	return hash.Sum(nil)
+}
+
 // Base64Encode base64 encodes bytes to a string.
 func Base64Encode(val []byte) string {
 	return base64.StdEncoding.EncodeToString(val)

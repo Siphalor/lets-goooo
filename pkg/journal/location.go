@@ -9,6 +9,7 @@ import (
 
 var Locations map[string]*Location
 
+// Location represents a location where users can sign in to.
 type Location struct {
 	XMLName xml.Name `xml:"location"`
 	Name    string   `xml:"name,attr"`

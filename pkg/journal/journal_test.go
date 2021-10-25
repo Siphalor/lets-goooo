@@ -105,7 +105,7 @@ func TestParseEventJournalEntry(t *testing.T) {
 }
 
 func AddUserEntry(users map[string]*User, user *User) ([]byte, *User) {
-	hash := util.Hash(user)
+	hash := user.Hash()
 	users[string(hash)] = user
 	return hash, user
 }

@@ -14,10 +14,16 @@ import (
 
 // Writer is a write-only class to write to journal files.
 type Writer struct {
+	// knownUsers contains the hashes for the currently known users.
 	knownUsers util.StringSet
-	directory  string
+	// directory is the base directory for the journal files
+	directory string
+	// outputLock is a mutex for using the output in a thread-safe way.
+	// It needs to be locked for mutation as well as writes to the output.
 	outputLock sync.Mutex
-	output     io.Writer
+	// output is the current output stream for the journal.
+	// It is usually a file but this should not be relied upon.
+	output io.Writer
 }
 
 // NewWriter creates a new Writer with the given base directory where journal files will be stored.
@@ -44,10 +50,12 @@ func NewWriter(directory string) (*Writer, error) {
 	return &writer, nil
 }
 
+// GetCurrentJournalPath determines the current journal output file path for today based on the given journal directory.
 func GetCurrentJournalPath(directory string) string {
 	return path.Join(directory, util.GetDateFilename(time.Now())+".txt")
 }
 
+// LoadFrom extracts already known users from the given journal file.
 func (writer *Writer) LoadFrom(filePath string) error {
 	file, err := os.OpenFile(filePath, os.O_RDONLY, 0777)
 	if err != nil {
@@ -68,7 +76,7 @@ func (writer *Writer) LoadFrom(filePath string) error {
 			if err != nil {
 				log.Printf("Failed to parse user line \"%s\"", line[1:])
 			}
-			writer.knownUsers.Add(string(util.Hash(user)))
+			writer.knownUsers.Add(string(user.Hash()))
 		}
 	}
 
@@ -120,7 +128,7 @@ func (writer *Writer) writeUser(user *User) error {
 
 // WriteUserIfUnknown writes the given User data to the journal if it's not already present.
 func (writer *Writer) WriteUserIfUnknown(user *User) (string, error) {
-	hash := util.Base64Encode(util.Hash(user))
+	hash := util.Base64Encode(user.Hash())
 	if !writer.knownUsers.Contains(hash) {
 		if err := writer.writeUser(user); err != nil {
 			return hash, fmt.Errorf("failed to write User data if unknown: %w", err)
@@ -150,4 +158,22 @@ func (writer *Writer) WriteEventUser(user *User, location *Location, eventType E
 		return fmt.Errorf("failed to write User login with User data: %w", err)
 	}
 	return nil
+}
+
+// TrackJournalRotation takes care of daily updating the journal file.
+// This method should be run as its own routine:
+func (writer *Writer) TrackJournalRotation() {
+	for {
+		now := time.Now().In(time.Local)
+		nextDay := time.Date(now.Year(), now.Month(), now.Day()+1, 0, 0, 0, 0, time.Local)
+		time.Sleep(nextDay.Sub(now))
+		for {
+			err := writer.UpdateOutput()
+			if err == nil {
+				break
+			}
+			time.Sleep(30 * time.Second)
+			log.Printf("failed to update journal output: %#v", err)
+		}
+	}
 }
