@@ -181,7 +181,7 @@ func TestFlagSet_ParseFlags(t *testing.T) {
 // |_|   |_|\__,_|\__, |____/ \___|\__|  \__,_|___/\__,_|\__, |\___|
 //                |___/                                  |___/
 
-func ExampleFlagSet_PrintUsage() {
+func ExampleFlagSet_PrintUsage_positionalArgs() {
 	fs := CreateFlagSet()
 	fs.PositionalInt(FlagBuildArgs{
 		Names: []string{"arg1"},
@@ -209,7 +209,7 @@ func ExampleFlagSet_PrintUsage() {
 	//         description
 }
 
-func ExampleFlagSet_PrintUsage2() {
+func ExampleFlagSet_PrintUsage_flagArgs() {
 	fs := CreateFlagSet()
 	fs.Int(FlagBuildArgs{
 		Names: []string{"arg1", "1"},
@@ -238,7 +238,7 @@ func ExampleFlagSet_PrintUsage2() {
 	//         description
 }
 
-func ExampleFlagSet_PrintUsage3() {
+func ExampleFlagSet_PrintUsage_mixedArgs() {
 	fs := CreateFlagSet()
 	fs.PositionalInt(FlagBuildArgs{
 		Names: []string{"parg1"},
