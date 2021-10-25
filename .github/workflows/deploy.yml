@@ -45,7 +45,7 @@ jobs:
      needs:
       - plantuml
      container: 
-       image: pandoc/ubuntu-latex:latest
+       image: pandoc/ubuntu-latex:2.14.2
      steps:
       - name: Setup env
         run: |
