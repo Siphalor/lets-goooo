@@ -12,6 +12,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 )
 
 type testResponseWriter struct {
@@ -35,6 +36,10 @@ func (rw *testResponseWriter) clear() {
 	rw.content = ""
 }
 
+func testHandler(w http.ResponseWriter, _ *http.Request) {
+	executeTemplate(w, "test.html", nil, true)
+}
+
 func TestExecuteTemplate(t *testing.T) {
 	trw := testResponseWriter{content: ""}
 	buf := bytes.Buffer{}
@@ -50,7 +55,7 @@ func TestExecuteTemplate(t *testing.T) {
 		fmt.Printf("Unable to write file: %v", err)
 	}
 	reset := LogToBuffer(&buf)
-	executeTemplate(&trw, fileName, nil)
+	executeTemplate(&trw, fileName, nil, true)
 	reset()
 	assert.Equal(t, "", buf.String())
 	assert.Equal(t, defTem, trw.content)
@@ -62,7 +67,7 @@ func TestExecuteTemplate(t *testing.T) {
 		fmt.Printf("Unable to write file: %v", err)
 	}
 	reset = LogToBuffer(&buf)
-	executeTemplate(&trw, fileName, nil)
+	executeTemplate(&trw, fileName, nil, true)
 	reset()
 	assert.Equal(t, "", buf.String())
 	dynTest := strings.ReplaceAll(dynTem, "{{.Text}}", "")
@@ -75,7 +80,7 @@ func TestExecuteTemplate(t *testing.T) {
 		fmt.Printf("Unable to write file: %v", err)
 	}
 	reset = LogToBuffer(&buf)
-	executeTemplate(&trw, fileName, struct{ Text string }{Text: "text"})
+	executeTemplate(&trw, fileName, struct{ Text string }{Text: "text"}, true)
 	reset()
 	assert.Equal(t, "", buf.String())
 	dynTest = strings.ReplaceAll(dynTem, "{{.Text}}", "text")
@@ -85,24 +90,48 @@ func TestExecuteTemplate(t *testing.T) {
 
 	//test to use not existing Template -> shouldn't parse template
 	reset = LogToBuffer(&buf)
-	executeTemplate(&trw, "notExisting.html", nil)
+	executeTemplate(&trw, "notExisting.html", nil, false)
 	reset()
 	assert.NotEqual(t, "", buf.String())
 	buf.Reset()
 }
 
-func TestCreateRunWebserver(t *testing.T) {
+func TestCreateWebserver(t *testing.T) {
+	if os.Getenv("webitesti") == "" {
+		return
+	}
 	//Turn of ssl check, to avoid self-signed certificates error
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 
-	server := CreateWebserver(443, nil)
+	server := CreateWebserver(4443, nil)
 	go RunWebserver(server)
-	req, err := http.NewRequest("GET", "https://localhost", nil)
+	time.Sleep(time.Second)
+	req, err := http.NewRequest("GET", "https://localhost:4443/", nil)
 	assert.NoError(t, err)
 	res, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equal(t, 404, res.StatusCode)
-	assert.NoError(t, server.Close())
+
+	handler := map[string]http.HandlerFunc{
+		"/": testHandler,
+	}
+	server = CreateWebserver(4444, handler)
+	go RunWebserver(server)
+	time.Sleep(time.Second)
+	req, err = http.NewRequest("GET", "https://localhost:4444/", nil)
+	assert.NoError(t, err)
+	res, err = client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, 200, res.StatusCode)
+
+}
+
+func TestHandlers(t *testing.T) {
+	assert.HTTPStatusCode(t, defaultHandler, "GET", "https://localhost", nil, 200)
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 200)
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 200)
+	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200)
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 200)
 
 }
 
