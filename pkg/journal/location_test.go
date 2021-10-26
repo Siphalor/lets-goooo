@@ -41,7 +41,7 @@ func TestReadLocations(t *testing.T) {
 	expectedLocationMOS := Location{Name: "Mosbach", Code: "MOS"}
 	expectedLocationMGH := Location{Name: "Bad Mergentheim", Code: "MGH"}
 
-	err = ReadLocations("locations.xml")
+	err = ReadLocations(filepath)
 	assert.NoError(t, err, "Error with correct path")
 	assert.Equal(t, 2, len(Locations))
 
