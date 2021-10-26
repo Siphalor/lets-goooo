@@ -12,7 +12,6 @@ import (
 	"time"
 )
 
-//TODO get from config
 var logIOUrl = "https://localhost:4443/"
 
 type QrCodeUrl struct {
@@ -45,15 +44,15 @@ func RunWebservers() {
 }
 
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
-	executeTemplate(w, "default.html", nil)
+	executeTemplate(w, "default.html", nil, false)
 }
 
 func loginHandler(w http.ResponseWriter, _ *http.Request) {
-	executeTemplate(w, "default.html", nil) //TODO
+	executeTemplate(w, "default.html", nil, false) //TODO
 }
 
 func logoutHandler(w http.ResponseWriter, _ *http.Request) {
-	executeTemplate(w, "default.html", nil) //TODO
+	executeTemplate(w, "default.html", nil, false) //TODO
 }
 
 func qrPngHandler(w http.ResponseWriter, r *http.Request) {
@@ -92,11 +91,15 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 
 func qrHandler(w http.ResponseWriter, r *http.Request) {
 	data := QrCodeUrl{fmt.Sprintf("%v.png", r.URL.Path), r.URL.Query().Get("location")}
-	executeTemplate(w, "qr.html", data)
+	executeTemplate(w, "qr.html", data, false)
 }
 
-//creates a Template from a given file and responses with the
-func executeTemplate(w http.ResponseWriter, file string, data interface{}) {
+// creates a Template from a given file and responses with the
+//
+func executeTemplate(w http.ResponseWriter, file string, data interface{}, testData bool) {
+	if !testData {
+		file = GetFilePath() + "template/" + file
+	}
 	tempDefault, err := template.ParseFiles(file)
 	if err != nil {
 		log.Printf("failed to parse template: %#v \n", err)
@@ -121,17 +124,15 @@ func CreateWebserver(port int, handlers map[string]http.HandlerFunc) *http.Serve
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
-
 	return &server
-
 }
 
 func RunWebserver(server *http.Server) {
-	workdir := GetFilePath("cmd")
+	workdir := GetFilePath()
 	log.Fatalln(server.ListenAndServeTLS(workdir+"certification/cert.pem", workdir+"certification/key.pem"))
 }
 
-func GetFilePath(search string) string {
+func GetFilePath() string {
 	_, filename, _, _ := runtime.Caller(0)
 	index := strings.LastIndex(filename, "cmd")
 	workdir := filename[0:index]
