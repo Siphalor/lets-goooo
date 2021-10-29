@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"html/template"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
@@ -19,28 +20,48 @@ type QrCodeUrl struct {
 	Location string
 }
 
-func RunWebservers() {
+func RunWebservers(portLogin int, portQr int) error {
+	if portLogin == portQr {
+		return fmt.Errorf("can't use the same port for two webservers")
+	}
+
 	wait := new(sync.WaitGroup)
 	wait.Add(2)
+	server, destroy := func() (*http.Server, func()) {
+		handler := map[string]http.HandlerFunc{
+			"/":       defaultHandler,
+			"/qr":     qrHandler,
+			"/qr.png": qrPngHandler,
+		}
+		return CreateWebserver(portQr, handler)
+	}()
 	go func() {
+		if err := RunWebserver(server); err != http.ErrServerClosed {
+			log.Printf("SSL server ListenAndServe: %v", err)
+		}
+		destroy()
+		wait.Done()
+	}()
+
+	time.Sleep(time.Second)
+
+	server, destroy = func() (*http.Server, func()) {
 		handler := map[string]http.HandlerFunc{
 			"/":       defaultHandler,
 			"/login":  loginHandler,
 			"/logout": logoutHandler,
 		}
-		RunWebserver(CreateWebserver(4443, handler))
+		return CreateWebserver(portLogin, handler)
+	}()
+	go func() {
+		if err := RunWebserver(server); err != http.ErrServerClosed {
+			log.Printf("SSL server ListenAndServe: %v", err)
+		}
+		destroy()
 		wait.Done()
 	}()
-	time.AfterFunc(2*time.Second, func() {
-		handler := map[string]http.HandlerFunc{
-			"/":       defaultHandler,
-			"/qr.png": qrPngHandler,
-			"/qr":     qrHandler,
-		}
-		RunWebserver(CreateWebserver(443, handler))
-		wait.Done()
-	})
 	wait.Wait()
+	return nil
 }
 
 func defaultHandler(w http.ResponseWriter, _ *http.Request) {
@@ -112,7 +133,7 @@ func executeTemplate(w http.ResponseWriter, file string, data interface{}, testD
 	}
 }
 
-func CreateWebserver(port int, handlers map[string]http.HandlerFunc) *http.Server {
+func CreateWebserver(port int, handlers map[string]http.HandlerFunc) (*http.Server, func()) {
 	mux := http.NewServeMux()
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
@@ -124,12 +145,22 @@ func CreateWebserver(port int, handlers map[string]http.HandlerFunc) *http.Serve
 		Addr:    fmt.Sprintf(":%d", port),
 		Handler: mux,
 	}
-	return &server
+
+	destroy := func() {
+		if err := server.Shutdown(context.Background()); err != nil {
+			log.Printf("SSL server Shutdown: %v", err)
+		}
+	}
+	return &server, destroy
 }
 
-func RunWebserver(server *http.Server) {
+func RunWebserver(server *http.Server) error {
 	workdir := GetFilePath()
-	log.Fatalln(server.ListenAndServeTLS(workdir+"certification/cert.pem", workdir+"certification/key.pem"))
+	err := server.ListenAndServeTLS(workdir+"certification/cert.pem", workdir+"certification/key.pem")
+	if err != http.ErrServerClosed {
+		return err
+	}
+	return nil
 }
 
 func GetFilePath() string {

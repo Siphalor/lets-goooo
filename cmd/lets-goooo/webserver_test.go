@@ -97,26 +97,33 @@ func TestExecuteTemplate(t *testing.T) {
 }
 
 func TestCreateWebserver(t *testing.T) {
-	if os.Getenv("webitesti") == "" {
+	if os.Getenv("webitesti") == "a" {
 		return
 	}
 	//Turn of ssl check, to avoid self-signed certificates error
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 
-	server := CreateWebserver(4443, nil)
-	go RunWebserver(server)
+	server, destroy := CreateWebserver(4443, nil)
+	go func() {
+		err := RunWebserver(server)
+		assert.Error(t, http.ErrServerClosed, err)
+	}()
 	time.Sleep(time.Second)
 	req, err := http.NewRequest("GET", "https://localhost:4443/", nil)
 	assert.NoError(t, err)
 	res, err := client.Do(req)
 	assert.NoError(t, err)
 	assert.Equal(t, 404, res.StatusCode)
+	destroy()
 
 	handler := map[string]http.HandlerFunc{
 		"/": testHandler,
 	}
-	server = CreateWebserver(4444, handler)
-	go RunWebserver(server)
+	server, destroy = CreateWebserver(4444, handler)
+	go func() {
+		err := RunWebserver(server)
+		assert.Error(t, http.ErrServerClosed, err)
+	}()
 	time.Sleep(time.Second)
 	req, err = http.NewRequest("GET", "https://localhost:4444/", nil)
 	assert.NoError(t, err)
@@ -124,6 +131,15 @@ func TestCreateWebserver(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 200, res.StatusCode)
 
+	server2, destroy2 := CreateWebserver(4444, handler)
+
+	go func() {
+		err := RunWebserver(server2)
+		assert.NotEqual(t, http.ErrServerClosed, err)
+	}()
+
+	destroy()
+	destroy2()
 }
 
 func TestHandlers(t *testing.T) {
@@ -132,6 +148,30 @@ func TestHandlers(t *testing.T) {
 	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 200)
 	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200)
 	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 200)
+
+}
+
+func TestRunWebservers(t *testing.T) {
+	//Turn of ssl check, to avoid self-signed certificates error
+	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+
+	go func() {
+		err := RunWebservers(443, 4443)
+		assert.NoError(t, err)
+	}()
+	time.Sleep(time.Second)
+
+	req, err := http.NewRequest("GET", "https://localhost", nil)
+	assert.NoError(t, err)
+	res, err := client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, 200, res.StatusCode)
+
+	req, err = http.NewRequest("GET", "https://localhost:4443", nil)
+	assert.NoError(t, err)
+	res, err = client.Do(req)
+	assert.NoError(t, err)
+	assert.Equal(t, 200, res.StatusCode)
 
 }
 
