@@ -1,0 +1,5 @@
+<locations>
+    <location name="Teststadt" code="TST"/>
+    <location name="Musterdorf" code="MSD"/>
+    <location name="Hauptstadt" code="HST"/>
+</locations>

@@ -42,7 +42,7 @@ func ViewContacts(
 			}
 		}
 	} else { // Print helper message with name and address of person
-		err = writeString(writer, fmt.Sprintf("Showing contacs for user %s (%s):\n", user.Name, user.Address))
+		err = writeString(writer, fmt.Sprintf("Showing contacts for user %s (%s):\n", user.Name, user.Address))
 		if err != nil {
 			return err
 		}
@@ -70,8 +70,8 @@ func ViewContacts(
 				for otherUser, otherLogin := range allUserLocs[userLogin.Location] {
 					err = printContact(
 						writer,
-						otherUser, getEarlierEvent(userLogin, otherLogin), &event,
-						csv, lastLocHeading,
+						otherUser, getLaterEvent(userLogin, otherLogin), &event,
+						csv, &lastLocHeading,
 					)
 					if err != nil {
 						return err
@@ -90,8 +90,8 @@ func ViewContacts(
 					login := allUserLocs[event.Location][event.User]
 					err = printContact(
 						writer,
-						event.User, getEarlierEvent(login, userLogin), &event,
-						csv, lastLocHeading,
+						event.User, getLaterEvent(login, userLogin), &event,
+						csv, &lastLocHeading,
 					)
 					if err != nil {
 						return err
@@ -107,9 +107,9 @@ func ViewContacts(
 	return nil
 }
 
-// getEarlierEvent returns the event that happened earlier from the given arguments
-func getEarlierEvent(evt1 *journal.Event, evt2 *journal.Event) *journal.Event {
-	if evt1.Timestamp < evt2.Timestamp {
+// getLaterEvent returns the event that happened earlier from the given arguments
+func getLaterEvent(evt1 *journal.Event, evt2 *journal.Event) *journal.Event {
+	if evt1.Timestamp > evt2.Timestamp {
 		return evt1
 	}
 	return evt2
@@ -117,15 +117,15 @@ func getEarlierEvent(evt1 *journal.Event, evt2 *journal.Event) *journal.Event {
 
 func printContact(
 	writer io.Writer, otherUser *journal.User, login *journal.Event, logout *journal.Event,
-	csv bool, lastLocHeading *journal.Location,
+	csv bool, lastLocHeading **journal.Location,
 ) error {
 	// Write location headers only when not in CSV mode and on location changes
-	if !csv && lastLocHeading == nil {
+	if !csv && (*lastLocHeading == nil || *lastLocHeading != login.Location) {
 		err := writeString(writer, login.Location.Name+":\n")
 		if err != nil {
 			return err
 		}
-		lastLocHeading = login.Location
+		*lastLocHeading = login.Location
 	}
 	// Calculate the duration between login and logout
 	duration := time.Unix(logout.Timestamp, 0).Sub(time.Unix(login.Timestamp, 0))

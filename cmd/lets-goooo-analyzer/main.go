@@ -96,7 +96,7 @@ func main() {
 		os.Exit(0)
 
 	case showPersonCmd:
-		handleCmdError(cmd.ShowPersons(*showPersonJournal, *showPersonLocations, *showPersonName, *showPersonAddress))
+		handleCmdError(cmd.ShowPerson(*showPersonJournal, *showPersonLocations, *showPersonName, *showPersonAddress))
 
 	case viewContactsCmd:
 		handleCmdError(cmd.ViewContacts(
