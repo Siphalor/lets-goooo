@@ -15,6 +15,10 @@ func main() {
 	commandGroup := argp.CreateSubcommandGroup() // The main subcommand group
 
 	// PROTOTYPES for arguments that are used multiple times
+	locationsProtoArg := argp.FlagBuildArgs{
+		Names: []string{"locations", "l"},
+		Usage: "A location XML file to load the location data from",
+	}
 	journalProtoArg := argp.FlagBuildArgs{
 		Names: []string{"journal"},
 		Usage: "The journal input path",
@@ -52,12 +56,14 @@ func main() {
 	// SHOW-PERSON command
 	showPersonCmd := commandGroup.AddSubcommand(argp.CreateSubcommand("show-person", "Show the person with the given name"))
 	showPersonJournal := showPersonCmd.PositionalString(journalProtoArg, "")
+	showPersonLocations := showPersonCmd.String(locationsProtoArg, "locations.xml")
 	showPersonName := showPersonCmd.String(personNameProtoArg, "")
 	showPersonAddress := showPersonCmd.String(personAddressProtoArg, "")
 
 	// VIEW-CONTACTS command
 	viewContactsCmd := commandGroup.AddSubcommand(argp.CreateSubcommand("view-contacts", "Creates a personal contact list with a journal"))
 	viewContactsJournal := viewContactsCmd.PositionalString(journalProtoArg, "")
+	viewContactsLocations := viewContactsCmd.String(locationsProtoArg, "locations.xml")
 	viewContactsName := viewContactsCmd.String(personNameProtoArg, "")
 	viewContactsAddress := viewContactsCmd.String(personAddressProtoArg, "")
 	viewContactsCSV := viewContactsCmd.Bool(argp.FlagBuildArgs{
@@ -71,11 +77,12 @@ func main() {
 	// EXPORT command
 	exportCmd := commandGroup.AddSubcommand(argp.CreateSubcommand("export", "Export the journal to CSV"))
 	exportJournal := exportCmd.PositionalString(journalProtoArg, "")
+	exportLocations := exportCmd.String(locationsProtoArg, "locations.xml")
 	exportCSVHeaders := exportCmd.Bool(csvHeaderProtoArg, false)
 	exportOutput := exportCmd.String(outputFileProtoArg, "")
 	exportOutputPerms := exportCmd.Uint(outputFilePermsProtoArg, 0660)
 	exportLocation := exportCmd.String(argp.FlagBuildArgs{
-		Names: []string{"location", "loc", "l"},
+		Names: []string{"location", "loc"},
 		Usage: "Filter the events by a location, given either as code (three letters) or by the full name",
 	}, "")
 
@@ -94,6 +101,7 @@ func main() {
 		os.Exit(0)
 
 	case showPersonCmd:
+		readLocations(*showPersonLocations)
 		j := readJournal(*showPersonJournal)
 		user := findUser(j, *showPersonName, *showPersonAddress)
 
@@ -110,6 +118,7 @@ func main() {
 		}
 
 	case viewContactsCmd:
+		readLocations(*viewContactsLocations)
 		j := readJournal(*viewContactsJournal)
 		user := findUser(j, *viewContactsName, *viewContactsAddress)
 
@@ -216,6 +225,7 @@ func main() {
 		}
 
 	case exportCmd:
+		readLocations(*exportLocations)
 		var locationFilter *journal.Location = nil
 		if *exportLocation != "" {
 			location, exists := journal.Locations[*exportLocation]
@@ -287,6 +297,15 @@ func readJournal(path string) *journal.Journal {
 		os.Exit(100)
 	}
 	return &readJournal
+}
+
+func readLocations(arg string) {
+	if arg != "" {
+		if err := journal.ReadLocations(arg); err != nil {
+			fmt.Printf("Failed to read locations from file \"%s\": %v", arg, err)
+			os.Exit(103)
+		}
+	}
 }
 
 // openOutput returns an output stream, either to a new file or to stdout
