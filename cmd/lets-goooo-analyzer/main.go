@@ -1,14 +1,9 @@
 package main
 
 import (
-	"fmt"
-	"io"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/cmd/lets-goooo-analyzer/cmd"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/argp"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
 	"os"
-	"strings"
-	"time"
 )
 
 func main() {
@@ -101,274 +96,21 @@ func main() {
 		os.Exit(0)
 
 	case showPersonCmd:
-		readLocations(*showPersonLocations)
-		j := readJournal(*showPersonJournal)
-		user := findUser(j, *showPersonName, *showPersonAddress)
-
-		lastLoc := (*journal.Location)(nil) // The last location so that there can be header lines for each location
-		for _, event := range j.GetEvents() {
-			if event.User == user {
-				if event.Location != lastLoc { // Different location
-					fmt.Printf("%s:\n", event.Location.Name)
-				}
-				eventTime := time.Unix(event.Timestamp, 0).In(time.Local) // Important because of daylight saving time or similar happenings
-				fmt.Printf("%10s: %2d:%02d:%02d\n", event.EventType.Name(), eventTime.Hour(), eventTime.Minute(), eventTime.Second())
-				lastLoc = event.Location
-			}
-		}
+		cmd.ShowPersons(*showPersonJournal, *showPersonLocations, *showPersonName, *showPersonAddress)
 
 	case viewContactsCmd:
-		readLocations(*viewContactsLocations)
-		j := readJournal(*viewContactsJournal)
-		user := findUser(j, *viewContactsName, *viewContactsAddress)
-
-		writer := openOutput(*viewContactsOutput, *viewContactsOutputPerms)
-		defer func() {
-			err := writer.Close()
-			if err != nil {
-				println("Failed to close output")
-			}
-		}()
-
-		err := error(nil)
-		if *viewContactsCSV {
-			if *viewContactsCSVHeaders {
-				err = util.WriteString(writer, "Duration in seconds,Location,Contact Name,Contact Address\n")
-			}
-		} else { // Print helper message with name and address of person
-			err = util.WriteString(writer, fmt.Sprintf("Showing contacs for user %s (%s):\n", user.Name, user.Address))
-		}
-		if err != nil {
-			fmt.Printf("Failed to write to output: %v", err)
-			os.Exit(500)
-		}
-
-		userLogin := (*journal.Event)(nil)         // The last read user login event
-		lastLocHeading := (*journal.Location)(nil) // The last written location heading, so locational contacts are grouped together
-
-		// Map of locations and their current users with their login events
-		allUserLocs := make(map[*journal.Location]map[*journal.User]*journal.Event, len(journal.Locations))
-		// Initialize that map with the known locations
-		for _, loc := range journal.Locations {
-			allUserLocs[loc] = make(map[*journal.User]*journal.Event, 50)
-		}
-
-		// Private function for printing contact information
-		printContact := func(otherUser *journal.User, login *journal.Event, logout *journal.Event) {
-			// Write location headers only when not in CSV mode and on location changes
-			if !*viewContactsCSV && lastLocHeading == nil {
-				err := util.WriteString(writer, login.Location.Name+":\n")
-				if err != nil {
-					fmt.Printf("Failed to write to output: %v", err)
-					os.Exit(500)
-				}
-				lastLocHeading = login.Location
-			}
-			// Calculate the duration between login and logout
-			duration := time.Unix(logout.Timestamp, 0).Sub(time.Unix(login.Timestamp, 0))
-			secs := int(duration.Seconds())
-
-			err := error(nil)
-			if *viewContactsCSV {
-				err = util.WriteString(writer, fmt.Sprintf("%d,%s,\"%s\",\"%s\"\n", secs, login.Location.Name, otherUser.Name, otherUser.Address))
-			} else {
-				err = util.WriteString(writer, fmt.Sprintf(
-					"  %2dh %2dm %2ds - %s - %s\n",
-					secs/3600, secs/60%60, secs%60,
-					otherUser.Name, otherUser.Address,
-				))
-			}
-			if err != nil {
-				fmt.Printf("Failed to write to output: %v", err)
-				os.Exit(500)
-			}
-		}
-
-		events := j.GetEvents()
-		for i, event := range events {
-			// If an event concerning the selected user is encountered
-			if event.User == user {
-				switch event.EventType {
-				case journal.LOGIN: // on login just set the login event
-					userLogin = &events[i]
-
-				case journal.LOGOUT: // on logout check all other persons that are currently checked in
-					for otherUser, otherLogin := range allUserLocs[userLogin.Location] {
-						printContact(
-							otherUser,
-							getEarlierEvent(userLogin, otherLogin),
-							&event,
-						)
-					}
-					userLogin = nil
-				}
-
-			} else { // If the event is about a different user
-				switch event.EventType {
-				case journal.LOGIN: // store the login event
-					allUserLocs[event.Location][event.User] = &events[i]
-
-				case journal.LOGOUT: // check if the user is at the same location as the selected user, then print that contact
-					if userLogin != nil && event.Location == userLogin.Location {
-						login := allUserLocs[event.Location][event.User]
-						printContact(
-							event.User,
-							getEarlierEvent(login, userLogin),
-							&event,
-						)
-					}
-
-					// remove login event (check out)
-					delete(allUserLocs[event.Location], event.User)
-				}
-			}
-		}
+		cmd.ViewContacts(
+			*viewContactsJournal, *viewContactsLocations, *viewContactsName, *viewContactsAddress,
+			*viewContactsCSV, *viewContactsCSVHeaders, *viewContactsOutput, *viewContactsOutputPerms,
+		)
 
 	case exportCmd:
-		readLocations(*exportLocations)
-		var locationFilter *journal.Location = nil
-		if *exportLocation != "" {
-			location, exists := journal.Locations[*exportLocation]
-			if exists {
-				locationFilter = location
-			} else {
-				for _, loc := range journal.Locations {
-					if strings.ToLower(loc.Name) == strings.ToLower(*exportLocation) {
-						locationFilter = loc
-						break
-					}
-				}
-
-				if locationFilter == nil {
-					fmt.Printf("Failed to resolve location \"%s\"\n", *exportLocation)
-					os.Exit(404)
-				}
-			}
-		}
-
-		journalPath := *exportJournal
-		j := readJournal(journalPath)
-		if *exportOutput == "" { // set a default output file name
-			*exportOutput = journalPath + "-export.csv"
-		}
-		writer := openOutput(*exportOutput, *exportOutputPerms)
-		defer func() {
-			err := writer.Close()
-			if err != nil {
-				println("Failed to close output")
-			}
-		}()
-
-		if *exportCSVHeaders { // Print the CSV headers, if applicable
-			err := util.WriteString(writer, "Event type,Location,Timestamp,Name,Address\n")
-			if err != nil {
-				fmt.Printf("Failed to write to output: %v", err)
-				os.Exit(500)
-			}
-		}
-		for _, event := range j.GetEvents() {
-			if locationFilter != nil {
-				if event.Location != locationFilter {
-					continue
-				}
-			}
-			err := util.WriteString(writer, fmt.Sprintf(
-				"%s,%s,%d,%s,%s\n",
-				event.EventType.Name(),
-				event.Location.Name,
-				event.Timestamp,
-				event.User.Name,
-				event.User.Address,
-			))
-			if err != nil {
-				fmt.Printf("Failed to write event to output: %v\n", err)
-			}
-		}
+		cmd.Export(
+			*exportJournal, *exportLocations, *exportCSVHeaders, *exportOutput, *exportOutputPerms,
+			*exportLocation,
+		)
 
 	default: // should™ be unreachable
 		println("Invalid subcommand!")
 	}
-}
-
-func readJournal(path string) *journal.Journal {
-	readJournal, err := journal.ReadJournal(path)
-	if err != nil {
-		fmt.Printf("Failed to read journal (\"%s\"): %v\n", path, err)
-		os.Exit(100)
-	}
-	return &readJournal
-}
-
-func readLocations(arg string) {
-	if arg != "" {
-		if err := journal.ReadLocations(arg); err != nil {
-			fmt.Printf("Failed to read locations from file \"%s\": %v", arg, err)
-			os.Exit(103)
-		}
-	}
-}
-
-// openOutput returns an output stream, either to a new file or to stdout
-func openOutput(outputArg string, outputPermsArg uint) io.WriteCloser {
-	if outputArg == "" { // If no output file is specified, then use stdout
-		return os.Stdout
-	}
-	// else, try to open a new file at the location with the given properties
-	file, err := os.OpenFile(outputArg, os.O_WRONLY|os.O_TRUNC|os.O_APPEND|os.O_CREATE, os.FileMode(outputPermsArg))
-	if err != nil {
-		fmt.Printf("Failed to open output file %s: %v", outputArg, err)
-	}
-	return file
-}
-
-// findUser tries to find a user with the given filters in the journal
-func findUser(j *journal.Journal, nameFilter string, addressFilter string) *journal.User {
-	filters := 0 // The count of filters required to match on a user
-	if nameFilter != "" {
-		nameFilter = strings.ToLower(nameFilter)
-		filters++
-	}
-	if addressFilter != "" {
-		addressFilter = strings.ToLower(addressFilter)
-		filters++
-	}
-	if filters <= 0 { // no filters set
-		println("Either a filter by name or by address must be specified")
-		os.Exit(1)
-	}
-
-	user := (*journal.User)(nil) // The potentially found user
-	for iterUser := range j.GetUsers() {
-		matching := 0 // The number of matched filters
-		if nameFilter != "" {
-			if strings.Contains(strings.ToLower(iterUser.Name), nameFilter) {
-				matching++
-			}
-		}
-		if addressFilter != "" {
-			if strings.Contains(strings.ToLower(iterUser.Address), addressFilter) {
-				matching++
-			}
-		}
-		if matching >= filters { // If the enough filters matched, use the current user
-			user = iterUser
-			break
-		}
-	}
-	if user == nil { // no user found
-		println("Could not find such a user, known users are:")
-		for iterUser := range j.GetUsers() {
-			fmt.Printf("\t%s\n", iterUser.Name)
-		}
-		os.Exit(101)
-	}
-	return user
-}
-
-// getEarlierEvent returns the event that happened earlier from the given arguments
-func getEarlierEvent(evt1 *journal.Event, evt2 *journal.Event) *journal.Event {
-	if evt1.Timestamp < evt2.Timestamp {
-		return evt1
-	}
-	return evt2
 }

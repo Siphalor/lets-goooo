@@ -1,0 +1,70 @@
+package cmd
+
+import (
+	"fmt"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
+	"os"
+	"strings"
+)
+
+func Export(journalPath string, locationsPath string, csvHeaders bool, outputPath string, outputPerms uint, locationFilterName string) {
+	forceReadLocations(locationsPath)
+	var locationFilter *journal.Location = nil
+	if locationFilterName != "" {
+		location, exists := journal.Locations[locationFilterName]
+		if exists {
+			locationFilter = location
+		} else {
+			for _, loc := range journal.Locations {
+				if strings.ToLower(loc.Name) == strings.ToLower(locationFilterName) {
+					locationFilter = loc
+					break
+				}
+			}
+
+			if locationFilter == nil {
+				fmt.Printf("Failed to resolve location \"%s\"\n", locationFilterName)
+				os.Exit(404)
+			}
+		}
+	}
+
+	j := forceReadJournal(journalPath)
+	if outputPath == "" { // set a default output file name
+		outputPath = journalPath + "-export.csv"
+	}
+	writer := openOutput(outputPath, outputPerms)
+	defer func() {
+		err := writer.Close()
+		if err != nil {
+			println("Failed to close output")
+		}
+	}()
+
+	if csvHeaders { // Print the CSV headers, if applicable
+		err := util.WriteString(writer, "Event type,Location,Timestamp,Name,Address\n")
+		if err != nil {
+			fmt.Printf("Failed to write to output: %v", err)
+			os.Exit(500)
+		}
+	}
+	for _, event := range j.GetEvents() {
+		if locationFilter != nil {
+			if event.Location != locationFilter {
+				continue
+			}
+		}
+		err := util.WriteString(writer, fmt.Sprintf(
+			"%s,%s,%d,%s,%s\n",
+			event.EventType.Name(),
+			event.Location.Name,
+			event.Timestamp,
+			event.User.Name,
+			event.User.Address,
+		))
+		if err != nil {
+			fmt.Printf("Failed to write event to output: %v\n", err)
+		}
+	}
+}
