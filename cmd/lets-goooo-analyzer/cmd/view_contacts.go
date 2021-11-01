@@ -9,7 +9,7 @@ import (
 
 func ViewContacts(
 	journalPath string, locationsPath string, name string, address string, csv bool,
-	csvHeaders bool, outputPath string, outputPerms uint) *Error {
+	csvHeaders bool, outputPath string, outputPerms uint) error {
 
 	if err := readLocations(locationsPath); err != nil {
 		return err
@@ -118,7 +118,7 @@ func getEarlierEvent(evt1 *journal.Event, evt2 *journal.Event) *journal.Event {
 func printContact(
 	writer io.Writer, otherUser *journal.User, login *journal.Event, logout *journal.Event,
 	csv bool, lastLocHeading *journal.Location,
-) *Error {
+) error {
 	// Write location headers only when not in CSV mode and on location changes
 	if !csv && lastLocHeading == nil {
 		err := writeString(writer, login.Location.Name+":\n")

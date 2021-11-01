@@ -7,7 +7,7 @@ import (
 	"strings"
 )
 
-func Export(journalPath string, locationsPath string, csvHeaders bool, outputPath string, outputPerms uint, locationFilterName string) *Error {
+func Export(journalPath string, locationsPath string, csvHeaders bool, outputPath string, outputPerms uint, locationFilterName string) error {
 	err := readLocations(locationsPath)
 	if err != nil {
 		return err

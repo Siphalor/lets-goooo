@@ -10,7 +10,7 @@ import (
 )
 
 // readJournal reads the journal at the given path
-func readJournal(path string) (*journal.Journal, *Error) {
+func readJournal(path string) (*journal.Journal, error) {
 	readJournal, err := journal.ReadJournal(path)
 	if err != nil {
 		return nil, NewError(500, fmt.Sprintf("failed to read journal \"%s\"", path), err)
@@ -19,7 +19,7 @@ func readJournal(path string) (*journal.Journal, *Error) {
 }
 
 // readLocations reads the locations file at the given path
-func readLocations(arg string) *Error {
+func readLocations(arg string) error {
 	if arg != "" {
 		if err := journal.ReadLocations(arg); err != nil {
 			return NewError(500, fmt.Sprintf("failed to read locations from file \"%s\"", arg), err)
@@ -29,8 +29,8 @@ func readLocations(arg string) *Error {
 }
 
 // openOutput returns an output stream, either to a new file or to stdout
-func openOutput(outputArg string, outputPermsArg uint) (io.WriteCloser, *Error) {
-	if outputArg == "" { // If no output file is specified, then use stdout
+func openOutput(outputArg string, outputPermsArg uint) (io.WriteCloser, error) {
+	if outputArg == "" || outputArg == "-" { // If no output file is specified, then use stdout
 		return os.Stdout, nil
 	}
 	// else, try to open a new file at the location with the given properties
@@ -41,7 +41,7 @@ func openOutput(outputArg string, outputPermsArg uint) (io.WriteCloser, *Error) 
 	return file, nil
 }
 
-func writeString(writer io.Writer, text string) *Error {
+func writeString(writer io.Writer, text string) error {
 	err := util.WriteString(writer, text)
 	if err != nil {
 		return NewError(500, "failed to write text to output", err)
@@ -50,7 +50,7 @@ func writeString(writer io.Writer, text string) *Error {
 }
 
 // findUser tries to find a user with the given filters in the journal
-func findUser(j *journal.Journal, nameFilter string, addressFilter string) (*journal.User, *Error) {
+func findUser(j *journal.Journal, nameFilter string, addressFilter string) (*journal.User, error) {
 	filters := 0 // The count of filters required to match on a user
 	if nameFilter != "" {
 		nameFilter = strings.ToLower(nameFilter)

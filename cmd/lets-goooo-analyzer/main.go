@@ -115,9 +115,9 @@ func main() {
 	}
 }
 
-func handleCmdError(error *cmd.Error) {
-	if error != nil {
-		print(error.Error())
-		os.Exit(error.Code())
+func handleCmdError(error error) {
+	if cmdError, success := error.(*cmd.Error); success {
+		print(cmdError.Error())
+		os.Exit(cmdError.Code())
 	}
 }

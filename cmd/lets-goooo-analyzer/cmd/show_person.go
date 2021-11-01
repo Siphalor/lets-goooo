@@ -6,7 +6,7 @@ import (
 	"time"
 )
 
-func ShowPersons(journalPath string, locationsPath string, name string, address string) *Error {
+func ShowPersons(journalPath string, locationsPath string, name string, address string) error {
 	if err := readLocations(locationsPath); err != nil {
 		return err
 	}
