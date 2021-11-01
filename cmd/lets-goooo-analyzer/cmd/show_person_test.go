@@ -4,21 +4,25 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"testing"
+	"time"
 )
 
 func ExampleShowPerson() {
+	tz := time.Local
+	time.Local = time.UTC
 	err := ShowPerson("testdata/journal.txt", "testdata/locations.xml", "Tester", "")
 	if err != nil {
 		fmt.Printf("Error: %v", err)
 	}
+	time.Local = tz
 
 	// Output:
 	// Teststadt:
-	//      Login:  5:20:00
-	//     Logout:  5:36:40
+	//      Login:  3:20:00
+	//     Logout:  3:36:40
 	// Hauptstadt:
-	//      Login:  6:10:00
-	//     Logout: 12:00:00
+	//      Login:  4:10:00
+	//     Logout: 10:00:00
 }
 
 func TestShowPerson(t *testing.T) {
