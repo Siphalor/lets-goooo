@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
-	"os"
 	"strings"
 )
 
@@ -27,8 +26,7 @@ func Export(journalPath string, locationsPath string, csvHeaders bool, outputPat
 			}
 
 			if locationFilter == nil {
-				fmt.Printf("Failed to resolve location \"%s\"\n", locationFilterName)
-				os.Exit(404)
+				return NewError(404, fmt.Sprintf("failed to resolve location \"%s\"\n", locationFilterName), nil)
 			}
 		}
 	}
@@ -54,8 +52,7 @@ func Export(journalPath string, locationsPath string, csvHeaders bool, outputPat
 	if csvHeaders { // Print the CSV headers, if applicable
 		err := util.WriteString(writer, "Event type,Location,Timestamp,Name,Address\n")
 		if err != nil {
-			fmt.Printf("Failed to write to output: %v", err)
-			os.Exit(500)
+			return NewError(500, "failed to write to output", err)
 		}
 	}
 	for _, event := range j.GetEvents() {
