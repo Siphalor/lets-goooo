@@ -6,10 +6,18 @@ import (
 	"time"
 )
 
-func ShowPersons(journalPath string, locationsPath string, name string, address string) {
-	forceReadLocations(locationsPath)
-	j := forceReadJournal(journalPath)
-	user := findUser(j, name, address)
+func ShowPersons(journalPath string, locationsPath string, name string, address string) *Error {
+	if err := readLocations(locationsPath); err != nil {
+		return err
+	}
+	j, err := readJournal(journalPath)
+	if err != nil {
+		return err
+	}
+	user, err := findUser(j, name, address)
+	if err != nil {
+		return err
+	}
 
 	lastLoc := (*journal.Location)(nil) // The last location so that there can be header lines for each location
 	for _, event := range j.GetEvents() {
@@ -22,4 +30,6 @@ func ShowPersons(journalPath string, locationsPath string, name string, address 
 			lastLoc = event.Location
 		}
 	}
+
+	return nil
 }

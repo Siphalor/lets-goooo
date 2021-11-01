@@ -8,8 +8,11 @@ import (
 	"strings"
 )
 
-func Export(journalPath string, locationsPath string, csvHeaders bool, outputPath string, outputPerms uint, locationFilterName string) {
-	forceReadLocations(locationsPath)
+func Export(journalPath string, locationsPath string, csvHeaders bool, outputPath string, outputPerms uint, locationFilterName string) *Error {
+	err := readLocations(locationsPath)
+	if err != nil {
+		return err
+	}
 	var locationFilter *journal.Location = nil
 	if locationFilterName != "" {
 		location, exists := journal.Locations[locationFilterName]
@@ -30,11 +33,17 @@ func Export(journalPath string, locationsPath string, csvHeaders bool, outputPat
 		}
 	}
 
-	j := forceReadJournal(journalPath)
+	j, err := readJournal(journalPath)
+	if err != nil {
+		return err
+	}
 	if outputPath == "" { // set a default output file name
 		outputPath = journalPath + "-export.csv"
 	}
-	writer := openOutput(outputPath, outputPerms)
+	writer, err := openOutput(outputPath, outputPerms)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		err := writer.Close()
 		if err != nil {
@@ -67,4 +76,5 @@ func Export(journalPath string, locationsPath string, csvHeaders bool, outputPat
 			fmt.Printf("Failed to write event to output: %v\n", err)
 		}
 	}
+	return nil
 }

@@ -2,21 +2,31 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
-	"os"
 	"time"
 )
 
 func ViewContacts(
 	journalPath string, locationsPath string, name string, address string, csv bool,
-	csvHeaders bool, outputPath string, outputPerms uint) {
+	csvHeaders bool, outputPath string, outputPerms uint) *Error {
 
-	forceReadLocations(locationsPath)
-	j := forceReadJournal(journalPath)
-	user := findUser(j, name, address)
+	if err := readLocations(locationsPath); err != nil {
+		return err
+	}
+	j, err := readJournal(journalPath)
+	if err != nil {
+		return err
+	}
+	user, err := findUser(j, name, address)
+	if err != nil {
+		return err
+	}
 
-	writer := openOutput(outputPath, outputPerms)
+	writer, err := openOutput(outputPath, outputPerms)
+	if err != nil {
+		return err
+	}
 	defer func() {
 		err := writer.Close()
 		if err != nil {
@@ -24,17 +34,18 @@ func ViewContacts(
 		}
 	}()
 
-	err := error(nil)
 	if csv {
 		if csvHeaders {
-			err = util.WriteString(writer, "Duration in seconds,Location,Contact Name,Contact Address\n")
+			err = writeString(writer, "Duration in seconds,Location,Contact Name,Contact Address\n")
+			if err != nil {
+				return err
+			}
 		}
 	} else { // Print helper message with name and address of person
-		err = util.WriteString(writer, fmt.Sprintf("Showing contacs for user %s (%s):\n", user.Name, user.Address))
-	}
-	if err != nil {
-		fmt.Printf("Failed to write to output: %v", err)
-		os.Exit(500)
+		err = writeString(writer, fmt.Sprintf("Showing contacs for user %s (%s):\n", user.Name, user.Address))
+		if err != nil {
+			return err
+		}
 	}
 
 	userLogin := (*journal.Event)(nil)         // The last read user login event
@@ -47,37 +58,6 @@ func ViewContacts(
 		allUserLocs[loc] = make(map[*journal.User]*journal.Event, 50)
 	}
 
-	// Private function for printing contact information
-	printContact := func(otherUser *journal.User, login *journal.Event, logout *journal.Event) {
-		// Write location headers only when not in CSV mode and on location changes
-		if !csv && lastLocHeading == nil {
-			err := util.WriteString(writer, login.Location.Name+":\n")
-			if err != nil {
-				fmt.Printf("Failed to write to output: %v", err)
-				os.Exit(500)
-			}
-			lastLocHeading = login.Location
-		}
-		// Calculate the duration between login and logout
-		duration := time.Unix(logout.Timestamp, 0).Sub(time.Unix(login.Timestamp, 0))
-		secs := int(duration.Seconds())
-
-		err := error(nil)
-		if csv {
-			err = util.WriteString(writer, fmt.Sprintf("%d,%s,\"%s\",\"%s\"\n", secs, login.Location.Name, otherUser.Name, otherUser.Address))
-		} else {
-			err = util.WriteString(writer, fmt.Sprintf(
-				"  %2dh %2dm %2ds - %s - %s\n",
-				secs/3600, secs/60%60, secs%60,
-				otherUser.Name, otherUser.Address,
-			))
-		}
-		if err != nil {
-			fmt.Printf("Failed to write to output: %v", err)
-			os.Exit(500)
-		}
-	}
-
 	events := j.GetEvents()
 	for i, event := range events {
 		// If an event concerning the selected user is encountered
@@ -88,11 +68,14 @@ func ViewContacts(
 
 			case journal.LOGOUT: // on logout check all other persons that are currently checked in
 				for otherUser, otherLogin := range allUserLocs[userLogin.Location] {
-					printContact(
-						otherUser,
-						getEarlierEvent(userLogin, otherLogin),
-						&event,
+					err = printContact(
+						writer,
+						otherUser, getEarlierEvent(userLogin, otherLogin), &event,
+						csv, lastLocHeading,
 					)
+					if err != nil {
+						return err
+					}
 				}
 				userLogin = nil
 			}
@@ -105,11 +88,14 @@ func ViewContacts(
 			case journal.LOGOUT: // check if the user is at the same location as the selected user, then print that contact
 				if userLogin != nil && event.Location == userLogin.Location {
 					login := allUserLocs[event.Location][event.User]
-					printContact(
-						event.User,
-						getEarlierEvent(login, userLogin),
-						&event,
+					err = printContact(
+						writer,
+						event.User, getEarlierEvent(login, userLogin), &event,
+						csv, lastLocHeading,
 					)
+					if err != nil {
+						return err
+					}
 				}
 
 				// remove login event (check out)
@@ -117,6 +103,8 @@ func ViewContacts(
 			}
 		}
 	}
+
+	return nil
 }
 
 // getEarlierEvent returns the event that happened earlier from the given arguments
@@ -125,4 +113,39 @@ func getEarlierEvent(evt1 *journal.Event, evt2 *journal.Event) *journal.Event {
 		return evt1
 	}
 	return evt2
+}
+
+func printContact(
+	writer io.Writer, otherUser *journal.User, login *journal.Event, logout *journal.Event,
+	csv bool, lastLocHeading *journal.Location,
+) *Error {
+	// Write location headers only when not in CSV mode and on location changes
+	if !csv && lastLocHeading == nil {
+		err := writeString(writer, login.Location.Name+":\n")
+		if err != nil {
+			return err
+		}
+		lastLocHeading = login.Location
+	}
+	// Calculate the duration between login and logout
+	duration := time.Unix(logout.Timestamp, 0).Sub(time.Unix(login.Timestamp, 0))
+	secs := int(duration.Seconds())
+
+	if csv {
+		err := writeString(writer, fmt.Sprintf("%d,%s,\"%s\",\"%s\"\n", secs, login.Location.Name, otherUser.Name, otherUser.Address))
+		if err != nil {
+			return err
+		}
+	} else {
+		err := writeString(writer, fmt.Sprintf(
+			"  %2dh %2dm %2ds - %s - %s\n",
+			secs/3600, secs/60%60, secs%60,
+			otherUser.Name, otherUser.Address,
+		))
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
 }

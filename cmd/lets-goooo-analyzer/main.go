@@ -96,21 +96,28 @@ func main() {
 		os.Exit(0)
 
 	case showPersonCmd:
-		cmd.ShowPersons(*showPersonJournal, *showPersonLocations, *showPersonName, *showPersonAddress)
+		handleCmdError(cmd.ShowPersons(*showPersonJournal, *showPersonLocations, *showPersonName, *showPersonAddress))
 
 	case viewContactsCmd:
-		cmd.ViewContacts(
+		handleCmdError(cmd.ViewContacts(
 			*viewContactsJournal, *viewContactsLocations, *viewContactsName, *viewContactsAddress,
 			*viewContactsCSV, *viewContactsCSVHeaders, *viewContactsOutput, *viewContactsOutputPerms,
-		)
+		))
 
 	case exportCmd:
-		cmd.Export(
+		handleCmdError(cmd.Export(
 			*exportJournal, *exportLocations, *exportCSVHeaders, *exportOutput, *exportOutputPerms,
 			*exportLocation,
-		)
+		))
 
 	default: // should™ be unreachable
 		println("Invalid subcommand!")
+	}
+}
+
+func handleCmdError(error *cmd.Error) {
+	if error != nil {
+		print(error.Error())
+		os.Exit(error.Code())
 	}
 }

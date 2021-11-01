@@ -4,46 +4,53 @@ import (
 	"fmt"
 	"io"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
 	"os"
 	"strings"
 )
 
-// forceReadJournal reads the journal at the given path or fails hard
-func forceReadJournal(path string) *journal.Journal {
+// readJournal reads the journal at the given path
+func readJournal(path string) (*journal.Journal, *Error) {
 	readJournal, err := journal.ReadJournal(path)
 	if err != nil {
-		fmt.Printf("Failed to read journal (\"%s\"): %v\n", path, err)
-		os.Exit(100)
+		return nil, NewError(500, fmt.Sprintf("failed to read journal \"%s\"", path), err)
 	}
-	return &readJournal
+	return &readJournal, nil
 }
 
-// forceReadLocations reads the locations file at the given path or fails hard
-func forceReadLocations(arg string) {
+// readLocations reads the locations file at the given path
+func readLocations(arg string) *Error {
 	if arg != "" {
 		if err := journal.ReadLocations(arg); err != nil {
-			fmt.Printf("Failed to read locations from file \"%s\": %v", arg, err)
-			os.Exit(103)
+			return NewError(500, fmt.Sprintf("failed to read locations from file \"%s\"", arg), err)
 		}
 	}
+	return nil
 }
 
 // openOutput returns an output stream, either to a new file or to stdout
-func openOutput(outputArg string, outputPermsArg uint) io.WriteCloser {
+func openOutput(outputArg string, outputPermsArg uint) (io.WriteCloser, *Error) {
 	if outputArg == "" { // If no output file is specified, then use stdout
-		return os.Stdout
+		return os.Stdout, nil
 	}
 	// else, try to open a new file at the location with the given properties
 	file, err := os.OpenFile(outputArg, os.O_WRONLY|os.O_TRUNC|os.O_APPEND|os.O_CREATE, os.FileMode(outputPermsArg))
 	if err != nil {
-		fmt.Printf("Failed to open output file %s: %v", outputArg, err)
-		os.Exit(104)
+		return nil, NewError(500, fmt.Sprintf("failed to open output file %s", outputArg), err)
 	}
-	return file
+	return file, nil
+}
+
+func writeString(writer io.Writer, text string) *Error {
+	err := util.WriteString(writer, text)
+	if err != nil {
+		return NewError(500, "failed to write text to output", err)
+	}
+	return nil
 }
 
 // findUser tries to find a user with the given filters in the journal
-func findUser(j *journal.Journal, nameFilter string, addressFilter string) *journal.User {
+func findUser(j *journal.Journal, nameFilter string, addressFilter string) (*journal.User, *Error) {
 	filters := 0 // The count of filters required to match on a user
 	if nameFilter != "" {
 		nameFilter = strings.ToLower(nameFilter)
@@ -54,8 +61,7 @@ func findUser(j *journal.Journal, nameFilter string, addressFilter string) *jour
 		filters++
 	}
 	if filters <= 0 { // no filters set
-		println("Either a filter by name or by address must be specified")
-		os.Exit(1)
+		return nil, NewError(400, "either a filter by name or by address must be specified", nil)
 	}
 
 	user := (*journal.User)(nil) // The potentially found user
@@ -77,11 +83,14 @@ func findUser(j *journal.Journal, nameFilter string, addressFilter string) *jour
 		}
 	}
 	if user == nil { // no user found
-		println("Could not find such a user, known users are:")
+		users := ""
 		for iterUser := range j.GetUsers() {
-			fmt.Printf("\t%s\n", iterUser.Name)
+			users += iterUser.Name + ", "
 		}
-		os.Exit(101)
+		if users != "" {
+			users = users[:len(users)-2]
+		}
+		return nil, NewError(404, "Could not find such a user, known users are: "+users, nil)
 	}
-	return user
+	return user, nil
 }
