@@ -67,6 +67,9 @@ func ViewContacts(
 				userLogin = &events[i]
 
 			case journal.LOGOUT: // on logout check all other persons that are currently checked in
+				if userLogin == nil { // handle unexpected logout
+					continue
+				}
 				for otherUser, otherLogin := range allUserLocs[userLogin.Location] {
 					err = printContact(
 						writer,
@@ -87,7 +90,10 @@ func ViewContacts(
 
 			case journal.LOGOUT: // check if the user is at the same location as the selected user, then print that contact
 				if userLogin != nil && event.Location == userLogin.Location {
-					login := allUserLocs[event.Location][event.User]
+					login, exists := allUserLocs[event.Location][event.User]
+					if !exists { // handle unexpected logout
+						continue
+					}
 					err = printContact(
 						writer,
 						event.User, getLaterEvent(login, userLogin), &event,
