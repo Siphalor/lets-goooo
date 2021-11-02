@@ -97,7 +97,7 @@ func TestExecuteTemplate(t *testing.T) {
 }
 
 func TestCreateWebserver(t *testing.T) {
-	if os.Getenv("webitesti") == "a" {
+	if os.Getenv("webitesti") == "" {
 		return
 	}
 	//Turn of ssl check, to avoid self-signed certificates error
