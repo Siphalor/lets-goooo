@@ -152,6 +152,9 @@ func TestHandlers(t *testing.T) {
 }
 
 func TestRunWebservers(t *testing.T) {
+	if os.Getenv("webitesti") == "" {
+		return
+	}
 	//Turn of ssl check, to avoid self-signed certificates error
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 
