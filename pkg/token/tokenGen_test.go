@@ -57,5 +57,3 @@ func TestCreateToken(t *testing.T) {
 	assert.NoErrorf(t, err, "token creation did not work")
 	assert.Equal(t, expectedToken, actual, "Wrong Token created")
 }
-
-//QRCode test redundant, since it can not fail with any string and only untested part is the qrcode.Encode function
