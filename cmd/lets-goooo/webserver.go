@@ -25,16 +25,19 @@ func RunWebservers(portLogin int, portQr int) error {
 		return fmt.Errorf("can't use the same port for two webservers")
 	}
 
+	//waitGroup to keep the method open until both servers were shut down
 	wait := new(sync.WaitGroup)
 	wait.Add(2)
-	server, destroy := func() (*http.Server, func()) {
-		handler := map[string]http.HandlerFunc{
-			"/":       defaultHandler,
-			"/qr":     qrHandler,
-			"/qr.png": qrPngHandler,
-		}
-		return CreateWebserver(portQr, handler)
-	}()
+
+	//creating webserver for QrCode
+	handlerQR := map[string]http.HandlerFunc{
+		"/":       defaultHandler,
+		"/qr":     qrHandler,
+		"/qr.png": qrPngHandler,
+	}
+	server, destroy := CreateWebserver(portQr, handlerQR)
+
+	//starting webserver for QrCode
 	go func() {
 		if err := RunWebserver(server); err != http.ErrServerClosed {
 			log.Printf("SSL server ListenAndServe: %v", err)
@@ -43,16 +46,17 @@ func RunWebservers(portLogin int, portQr int) error {
 		wait.Done()
 	}()
 
-	time.Sleep(time.Second)
+	time.Sleep(time.Second) // To be sure that the server is up (or start failed)
 
-	server, destroy = func() (*http.Server, func()) {
-		handler := map[string]http.HandlerFunc{
-			"/":       defaultHandler,
-			"/login":  loginHandler,
-			"/logout": logoutHandler,
-		}
-		return CreateWebserver(portLogin, handler)
-	}()
+	//creating webserver for LogIO
+	handlerLogIO := map[string]http.HandlerFunc{
+		"/":       defaultHandler,
+		"/login":  loginHandler,
+		"/logout": logoutHandler,
+	}
+	server, destroy = CreateWebserver(portLogin, handlerLogIO)
+
+	//starting webserver for LogIO
 	go func() {
 		if err := RunWebserver(server); err != http.ErrServerClosed {
 			log.Printf("SSL server ListenAndServe: %v", err)
@@ -60,6 +64,9 @@ func RunWebservers(portLogin int, portQr int) error {
 		destroy()
 		wait.Done()
 	}()
+
+	time.Sleep(time.Second) // To be sure that the server is up (or start failed)
+
 	wait.Wait()
 	return nil
 }
