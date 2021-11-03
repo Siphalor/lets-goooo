@@ -24,7 +24,7 @@ func ExampleViewContacts_filterA() {
 }
 
 func ExampleViewContacts_filterA_csv() {
-	err := ViewContacts("testdata/journal_contacts.txt", "testdata/locations.xml", "Tester", "", true, false, "-", 0777)
+	err := ViewContacts("testdata/journal_contacts.txt", "testdata/locations.xml", "", "Teststadt", true, false, "-", 0777)
 	if err != nil {
 		fmt.Printf("Error: %v", err)
 	}
@@ -53,6 +53,7 @@ func TestViewContacts_errors(t *testing.T) {
 	assert.Error(t, ViewContacts("testdata/journal.txt", "testdata/missingno", "Klaus", "", false, false, "", 0777))
 	assert.Error(t, ViewContacts("testdata/journal.txt", "testdata/locations.xml", "Unknown user", "", false, false, "", 0777))
 	assert.Error(t, ViewContacts("testdata/journal.txt", "testdata/locations.xml", "", "Unknown address", false, false, "", 0777))
+	assert.Error(t, ViewContacts("testdata/journal.txt", "testdata/locations.xml", "Klaus", "Teststadt", false, false, "", 0777))
 	assert.Error(t, ViewContacts("testdata/journal.txt", "testdata/locations.xml", "Klaus", "", false, false, tempDir, 0777))
 }
 
