@@ -13,7 +13,7 @@ func GetQrCode(url string, location string) ([]byte, error) {
 	}
 
 	var png []byte
-	png, err = qrcode.Encode(url+token, qrcode.Medium, 256)
+	png, err = qrcode.Encode(url+"?token="+token, qrcode.Medium, 256)
 	if err != nil {
 		return []byte{}, fmt.Errorf("could not create QR Code: %w", err)
 	}
