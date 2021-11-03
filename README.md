@@ -1,4 +1,4 @@
-# Let's Goooo! [![Build Status](https://app.travis-ci.com/Siphalor/lets-goooo.svg?token=gamXLqMMNyxLgyqaL1Uj&branch=main)](https://app.travis-ci.com/Siphalor/lets-goooo) [![Coverage Status](https://coveralls.io/repos/github/Siphalor/lets-goooo/badge.svg?branch=main&t=5PlqCD)](https://coveralls.io/github/Siphalor/lets-goooo?branch=main)
+# Let's Goooo! [![Tests status](https://github.com/Siphalor/lets-goooo/actions/workflows/push.yml/badge.svg)](https://github.com/Siphalor/lets-goooo/actions/workflows/push.yml) [![Coverage Status](https://coveralls.io/repos/github/Siphalor/lets-goooo/badge.svg?branch=main&t=5PlqCD)](https://coveralls.io/github/Siphalor/lets-goooo?branch=main)
 
 ![Logo](./logoooo.png?raw=true)
 
