@@ -48,6 +48,7 @@ func TestDecryptAES(t *testing.T) {
 }
 
 func TestCreateToken(t *testing.T) {
+
 	location := "MOS"
 	unencryptedExpectedToken := fmt.Sprintf("%12v:%s", int64(time.Now().Unix())/int64(ValidTime)*int64(ValidTime), location)
 	expectedToken, _ := EncryptAES(key, unencryptedExpectedToken)
