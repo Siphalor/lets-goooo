@@ -22,8 +22,7 @@ func TestReadLocations(t *testing.T) {
 
 	//Extracting correct Information from tmp xml file
 	//Creating Tmp Directory for not changing variables
-	tempDir, destroy := CreateTempDir(t)
-	defer destroy()
+	tempDir := t.TempDir()
 
 	dirPath := path.Join(tempDir, "dir")
 	err = os.Mkdir(dirPath, 0777)
