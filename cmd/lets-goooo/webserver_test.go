@@ -5,7 +5,6 @@ import (
 	"crypto/tls"
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"io/ioutil"
 	"log"
 	"net/http"
@@ -46,9 +45,8 @@ func TestExecuteTemplate(t *testing.T) {
 	defTem := "<html>\n  <head>\n    <title>Let's Goooo</title>\n  </head>\n  <body style=\"text-align:center;\">\n    <img src=\"assets/logoooo.svg\" style=\"max-width:500px;\" alt=\"Logo\" />\n  </body>\n</html>"
 	dynTem := "<html>\n  <head>\n    <title>Let's Goooo</title>\n  </head>\n  <body style=\"text-align:center;\">\n    <p> {{.Text}} </p>\n  </body>\n</html>"
 
-	tempDir, remover := CreateTempDir(t)
+	tempDir := t.TempDir()
 	fileName := tempDir + "/test.html"
-	defer remover()
 
 	//test the correct output by executing a basic template (without dynamic data)
 	if err := ioutil.WriteFile(fileName, []byte(defTem), 0755); err != nil {
@@ -186,13 +184,5 @@ func LogToBuffer(buffer *bytes.Buffer) func() {
 	return func() {
 		log.SetOutput(os.Stderr)
 		log.SetFlags(flags)
-	}
-}
-
-func CreateTempDir(t *testing.T) (string, func()) {
-	tempDir, err := os.MkdirTemp("", "")
-	require.NoError(t, err, "internal error: failed to create temp dir")
-	return tempDir, func() {
-		_ = os.Remove(tempDir)
 	}
 }

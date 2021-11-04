@@ -89,18 +89,18 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 	location := strings.ToUpper(q.Get("location"))
 
 	if location == "" {
-		log.Printf("there was no given location: %v \n", location)
+		log.Printf("there was no given location: %s \n", location)
 		if _, err := w.Write([]byte("no given location")); err != nil {
-			log.Printf("failed to write qrcode to Response: %#v \n %v \n", err, r)
+			log.Printf("failed to write qrcode to Response: %v \n %v \n", err, r)
 			return
 		}
 		return
 	}
 
 	if len(location) != 3 {
-		log.Printf("abbreviation has to be 3 characters, not %v \n", len(location))
+		log.Printf("abbreviation has to be 3 characters, not %d \n", len(location))
 		if _, err := w.Write([]byte("couldn't resolve location-abbreviation. Need 3 characters")); err != nil {
-			log.Printf("failed to write qrcode to Response: %#v \n", err)
+			log.Printf("failed to write qrcode to Response: %v \n", err)
 			return
 		}
 		return
@@ -108,18 +108,18 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 
 	qrcode, err := token.GetQrCode(logIOUrl, location)
 	if err != nil {
-		log.Printf("failed to get qrcode: %#v \n", err)
+		log.Printf("failed to get qrcode: %v \n", err)
 		return
 	}
 
 	if _, err := w.Write(qrcode); err != nil {
-		log.Printf("failed to write qrcode to Response: %#v \n", err)
+		log.Printf("failed to write qrcode to Response: %v \n", err)
 		return
 	}
 }
 
 func qrHandler(w http.ResponseWriter, r *http.Request) {
-	data := QrCodeUrl{fmt.Sprintf("%v.png", r.URL.Path), r.URL.Query().Get("location")}
+	data := QrCodeUrl{fmt.Sprintf("%s.png", r.URL.Path), r.URL.Query().Get("location")}
 	executeTemplate(w, "qr.html", data, false)
 }
 
@@ -130,12 +130,12 @@ func executeTemplate(w http.ResponseWriter, file string, data interface{}, testD
 	}
 	temp, err := template.ParseFiles(file)
 	if err != nil {
-		log.Printf("failed to parse template: %#v \n", err)
+		log.Printf("failed to parse template: %v \n", err)
 		return
 	}
 
 	if err := temp.Execute(w, data); err != nil {
-		log.Printf("failed to execute template: %#v \n", err)
+		log.Printf("failed to execute template: %v \n", err)
 		return
 	}
 }
@@ -165,8 +165,8 @@ func CreateWebserver(port int, handlers map[string]http.HandlerFunc) (*http.Serv
 }
 
 func RunWebserver(server *http.Server) error {
-	workdir := GetFilePath()
-	err := server.ListenAndServeTLS(workdir+"certification/cert.pem", workdir+"certification/key.pem")
+	_ = GetFilePath()
+	err := server.ListenAndServeTLS("certification/cert.pem", "certification/key.pem")
 	if err != http.ErrServerClosed {
 		return err
 	}
@@ -176,6 +176,9 @@ func RunWebserver(server *http.Server) error {
 func GetFilePath() string {
 	_, filename, _, _ := runtime.Caller(0)
 	index := strings.LastIndex(filename, "cmd")
-	workdir := filename[0:index]
-	return workdir
+	if index == -1 {
+		return filename
+	} else {
+		return filename[0:index]
+	}
 }
