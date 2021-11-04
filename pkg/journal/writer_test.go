@@ -24,8 +24,7 @@ func TestGetCurrentJournalPath(t *testing.T) {
 
 func TestNewWriter(t *testing.T) {
 	t.Parallel()
-	tempDir, remover := CreateTempDir(t)
-	defer remover()
+	tempDir := t.TempDir()
 	writer, err := NewWriter(tempDir)
 	if assert.NoError(t, err, "failed to create journal writer for new directory") {
 		file, ok := writer.output.(*os.File)
@@ -45,8 +44,7 @@ func TestNewWriter(t *testing.T) {
 
 func TestWriter_LoadFrom(t *testing.T) {
 	t.Parallel()
-	tempDir, remover := CreateTempDir(t)
-	defer remover()
+	tempDir := t.TempDir()
 	filePath := GetCurrentJournalPath(tempDir)
 
 	writer := Writer{
@@ -95,8 +93,7 @@ func TestWriter_LoadFrom(t *testing.T) {
 
 func TestWriter_UpdateOutput(t *testing.T) {
 	t.Parallel()
-	tempDir, remover := CreateTempDir(t)
-	defer remover()
+	tempDir := t.TempDir()
 	writer := Writer{outputLock: sync.Mutex{}, directory: tempDir}
 
 	if assert.NoError(t, writer.UpdateOutput(), "failed to run update output") {
@@ -252,14 +249,6 @@ func TestWriter_WriteEventUser(t *testing.T) {
 
 	writer.knownUsers.Remove(hash1)
 	assert.Error(t, writer.WriteEventUser(&user1, loc1, LOGOUT))
-}
-
-func CreateTempDir(t *testing.T) (string, func()) {
-	tempDir, err := os.MkdirTemp("", "")
-	require.NoError(t, err, "internal error: failed to create temp dir")
-	return tempDir, func() {
-		_ = os.Remove(tempDir)
-	}
 }
 
 func LogToBuffer(buffer *bytes.Buffer) func() {

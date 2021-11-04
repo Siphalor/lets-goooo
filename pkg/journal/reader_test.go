@@ -11,8 +11,7 @@ import (
 )
 
 func TestReadJournal(t *testing.T) {
-	tempDir, destroy := CreateTempDir(t)
-	defer destroy()
+	tempDir := t.TempDir()
 
 	dirPath := path.Join(tempDir, "dir")
 	err := os.Mkdir(dirPath, 0777)
