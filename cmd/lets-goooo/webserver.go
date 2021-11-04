@@ -20,6 +20,7 @@ type QrCodeUrl struct {
 	Location string
 }
 
+// RunWebservers opening login/out and qrCode webservers at the given ports
 func RunWebservers(portLogin int, portQr int) error {
 	if portLogin == portQr {
 		return fmt.Errorf("can't use the same port for two webservers")
@@ -88,16 +89,16 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 	location := strings.ToUpper(q.Get("location"))
 
 	if location == "" {
-		log.Printf("there was no given location: %#v \n", location)
+		log.Printf("there was no given location: %v \n", location)
 		if _, err := w.Write([]byte("no given location")); err != nil {
-			log.Printf("failed to write qrcode to Response: %#v \n %#v \n", err, r)
+			log.Printf("failed to write qrcode to Response: %#v \n %v \n", err, r)
 			return
 		}
 		return
 	}
 
 	if len(location) != 3 {
-		log.Printf("abbreviation has to be 3 characters, not %#v \n", len(location))
+		log.Printf("abbreviation has to be 3 characters, not %v \n", len(location))
 		if _, err := w.Write([]byte("couldn't resolve location-abbreviation. Need 3 characters")); err != nil {
 			log.Printf("failed to write qrcode to Response: %#v \n", err)
 			return
@@ -122,24 +123,26 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 	executeTemplate(w, "qr.html", data, false)
 }
 
-// creates a Template from a given file and responses with the
-//
+// executeTemplate creates a Template from a given file and writes the text filled with data into the http.Response
 func executeTemplate(w http.ResponseWriter, file string, data interface{}, testData bool) {
 	if !testData {
 		file = GetFilePath() + "template/" + file
 	}
-	tempDefault, err := template.ParseFiles(file)
+	temp, err := template.ParseFiles(file)
 	if err != nil {
 		log.Printf("failed to parse template: %#v \n", err)
 		return
 	}
 
-	if err := tempDefault.Execute(w, data); err != nil {
+	if err := temp.Execute(w, data); err != nil {
 		log.Printf("failed to execute template: %#v \n", err)
 		return
 	}
 }
 
+/*	CreateWebserver creates a webserver at the given port
+ *	the handlers of the webserver are given by the handler map
+ */
 func CreateWebserver(port int, handlers map[string]http.HandlerFunc) (*http.Server, func()) {
 	mux := http.NewServeMux()
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
