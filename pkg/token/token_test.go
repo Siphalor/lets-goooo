@@ -15,7 +15,7 @@ func TestEncryptAES(t *testing.T) {
 	plain := "  1634639400:MOS"
 	key = []byte("not32bitKey")
 	_, err := EncryptAES(key, plain)
-	assert.Error(t, err, "Encryption worked with wrong key")
+	assert.Error(t, err, "encryption worked with wrong key")
 
 	//Testing for proper function of EncryptAES
 	key = []byte("thisis32bitlongpassphraseimusing")
@@ -33,12 +33,12 @@ func TestDecryptAES(t *testing.T) {
 	cipher, _ := EncryptAES(key, expectedPlain)
 	key = []byte("not32bitKey")
 	_, err := DecryptAES(key, cipher)
-	assert.Error(t, err, "Decryption worked with wrong key")
+	assert.Error(t, err, "decryption worked with wrong key")
 
 	//Decryption fail check with wrong cipher length
 	key = []byte("thisis32bitlongpassphraseimusing")
 	_, err = DecryptAES(key, "tooShortCipher")
-	assert.Error(t, err, "Decryption worked with wrong cipher")
+	assert.Error(t, err, "decryption worked with wrong cipher")
 
 	//Testing for proper function of DecryptAES
 	actual, err := DecryptAES(key, cipher)
@@ -69,12 +69,12 @@ func TestCheckValidTime(t *testing.T) {
 	//text in place of timestamp
 	validity, err = CheckValidTime(encrypt("CorrectLengh:123"))
 	assert.False(t, validity, "false Token was said to be correct")
-	assert.Error(t, err, "No fail with string in token")
+	assert.Error(t, err, "no fail with string in token")
 
 	//No ":" for splitting
 	validity, err = CheckValidTime(encrypt("1234567891012MOS"))
 	assert.False(t, validity, "false Token was said to be correct")
-	assert.Error(t, err, "No fail without : for splitting")
+	assert.Error(t, err, "no fail without : for splitting")
 
 	//Outdated token
 	validity, err = CheckValidTime(encrypt("000000000001:MOS"))
@@ -83,7 +83,7 @@ func TestCheckValidTime(t *testing.T) {
 
 	correctToken, _ := CreateToken("MOS")
 	validity, err = CheckValidTime(correctToken)
-	assert.True(t, validity, "Was not true for correct token")
+	assert.True(t, validity, "was not true for correct token")
 	assert.NoError(t, err)
 }
 
