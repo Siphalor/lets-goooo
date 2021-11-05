@@ -45,7 +45,7 @@ func DecryptAES(key []byte, ciphertext string) (string, error) {
 	if len(key) != 32 {
 		return "", fmt.Errorf("key has wrong length")
 	} else if len(ciphertext) != 32 {
-		return "", fmt.Errorf("cipher has wrong length")
+		return "", fmt.Errorf("cipher has wrong length (%v)", len(ciphertext))
 	}
 	c, err := aes.NewCipher(key)
 	if err != nil {

@@ -61,20 +61,33 @@ func TestCreateToken(t *testing.T) {
 
 func TestCheckValidTime(t *testing.T) {
 
-	validity, err := CheckValidTime("NotACorrectTokenLengh")
+	//Wrong token length
+	validity, err := CheckValidTime(encrypt("NotACorrectTokenLength"))
 	assert.False(t, validity, "false Token was said to be correct")
 	assert.Error(t, err, "false length of token did not create an error during decryption")
 
-	validity, err = CheckValidTime("CorrectLengh:123")
+	//text in place of timestamp
+	validity, err = CheckValidTime(encrypt("CorrectLengh:123"))
 	assert.False(t, validity, "false Token was said to be correct")
 	assert.Error(t, err, "No fail with string in token")
 
-	validity, err = CheckValidTime("1234567891012MOS")
+	//No ":" for splitting
+	validity, err = CheckValidTime(encrypt("1234567891012MOS"))
 	assert.False(t, validity, "false Token was said to be correct")
 	assert.Error(t, err, "No fail without : for splitting")
+
+	//Outdated token
+	validity, err = CheckValidTime(encrypt("000000000001:MOS"))
+	assert.False(t, validity)
+	assert.NoError(t, err)
 
 	correctToken, _ := CreateToken("MOS")
 	validity, err = CheckValidTime(correctToken)
 	assert.True(t, validity, "Was not true for correct token")
-	assert.NoError(t, err, "")
+	assert.NoError(t, err)
+}
+
+func encrypt(plain string) string {
+	cipher, _ := EncryptAES(key, plain)
+	return cipher
 }
