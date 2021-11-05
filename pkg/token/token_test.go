@@ -56,5 +56,25 @@ func TestCreateToken(t *testing.T) {
 	actual, err := CreateToken(location)
 
 	assert.NoErrorf(t, err, "token creation did not work")
-	assert.Equal(t, expectedToken, actual, "Wrong Token created")
+	assert.Equal(t, expectedToken, actual, "wrong Token created")
+}
+
+func TestCheckValidTime(t *testing.T) {
+
+	validity, err := CheckValidTime("NotACorrectTokenLengh")
+	assert.False(t, validity, "false Token was said to be correct")
+	assert.Error(t, err, "false length of token did not create an error during decryption")
+
+	validity, err = CheckValidTime("CorrectLengh:123")
+	assert.False(t, validity, "false Token was said to be correct")
+	assert.Error(t, err, "No fail with string in token")
+
+	validity, err = CheckValidTime("1234567891012MOS")
+	assert.False(t, validity, "false Token was said to be correct")
+	assert.Error(t, err, "No fail without : for splitting")
+
+	correctToken, _ := CreateToken("MOS")
+	validity, err = CheckValidTime(correctToken)
+	assert.True(t, validity, "Was not true for correct token")
+	assert.NoError(t, err, "")
 }

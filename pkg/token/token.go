@@ -65,7 +65,7 @@ func CheckValidTime(token string) (bool, error) {
 	if err != nil {
 		return false, fmt.Errorf("decryption failed: %w", err)
 	}
-	tokenTime, err := strconv.ParseInt(strings.Split(plainToken, ":")[0], 10, 64)
+	tokenTime, err := strconv.ParseInt(strings.TrimSpace(strings.Split(plainToken, ":")[0]), 10, 64)
 	if err != nil {
 		return false, fmt.Errorf("splitting token failed: %w", err)
 	}
