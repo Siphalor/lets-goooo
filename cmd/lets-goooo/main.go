@@ -1,14 +1,11 @@
 package main
 
-import (
-	"encoding/base64"
-	"fmt"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
-)
+import "fmt"
 
 func main() {
 	println("Let's goooo!")
-	//RunWebservers()
-	a, b := token.GetQrCode("https://localhost:4443", "MOS")
-	fmt.Printf("%v %v", base64.StdEncoding.EncodeToString(a), b)
+	err := RunWebservers(4443, 443)
+	if err != nil {
+		fmt.Printf("couldn't start the Webservers: %#v", err)
+	}
 }
