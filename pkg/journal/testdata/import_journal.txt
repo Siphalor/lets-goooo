@@ -1,0 +1,6 @@
+*abc	def
++P245C5uet9ZzSc0fXoOi7/0FB4I=	HST	1000
+*cde	123
++ASkl/7Pm/MXnARb+f7+Fhk5GeYc=	TST	1000
+-ASkl/7Pm/MXnARb+f7+Fhk5GeYc=	TST	1000
+*	test
