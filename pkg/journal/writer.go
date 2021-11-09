@@ -103,6 +103,7 @@ func (writer *Writer) UpdateOutput() error {
 		return fmt.Errorf("failed to open journal file \"%s\": %w", filePath, err)
 	}
 	writer.output = file
+	writer.knownUsers = util.NewStringSet(100)
 	return nil
 }
 
@@ -120,6 +121,7 @@ func (writer *Writer) writeLine(line string) error {
 
 // writeUser writes the given User data to the journal.
 func (writer *Writer) writeUser(user *User) error {
+	writer.knownUsers.Add(util.Base64Encode(user.Hash()))
 	if err := writer.writeLine("*" + user.ToJournalLine()); err != nil {
 		return fmt.Errorf("failed to write User data: %w", err)
 	}
@@ -140,6 +142,9 @@ func (writer *Writer) WriteUserIfUnknown(user *User) (string, error) {
 
 // WriteEventUserHash writes an event with the given type and User hash.
 func (writer *Writer) WriteEventUserHash(userHash string, location *Location, eventType EventType) error {
+	if !writer.knownUsers.Contains(userHash) {
+		return fmt.Errorf("writing a user hash for an unkown user is not allowed")
+	}
 	err := writer.writeLine(fmt.Sprintf("%s%s\t%s\t%d", eventType.ToString(), userHash, location.Code, time.Now().UTC().Unix()))
 	if err != nil {
 		return fmt.Errorf("failed to write User event (type: %v): %w", eventType, err)
