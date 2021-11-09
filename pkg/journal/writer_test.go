@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
+	"io/ioutil"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
 	"log"
 	"os"
@@ -123,6 +124,38 @@ func TestWriter_UpdateOutput(t *testing.T) {
 	assert.Error(t, writer.UpdateOutput(), "failing to create the journal output should be reported")
 }
 
+func TestUpdateOutput_complete(t *testing.T) {
+	t.Parallel()
+
+	expectedLog := "*Tester\tTeststadt\n" + "+HjLV+aPwKzq3szuae53Zv5n4puw=\tHST\t"
+
+	tempDir := t.TempDir()
+	oldLogPath := path.Join(tempDir, "old")
+	oldFile, err := os.OpenFile(oldLogPath, os.O_CREATE|os.O_WRONLY, 0777)
+	require.NoError(t, err, "internal error: failed to open new file for output")
+	writer := Writer{
+		knownUsers: util.NewStringSet(100),
+		output:     oldFile,
+		outputLock: sync.Mutex{},
+		directory:  tempDir,
+	}
+	user := User{Name: "Tester", Address: "Teststadt"}
+	location := Location{Name: "Hauptstadt", Code: "HST"}
+	require.NoError(t, writer.WriteEventUser(&user, &location, LOGIN), "failed to write user event")
+	content, err := ioutil.ReadFile(oldLogPath)
+	require.NoError(t, err, "internal error: failed to read output file")
+	assert.Contains(t, string(content), expectedLog, "invalid text written to original journal")
+
+	require.NoError(t, writer.UpdateOutput(), "failed to update the output")
+	require.NoError(t, writer.WriteEventUser(&user, &location, LOGIN), "failed to write user event")
+	file, ok := writer.output.(*os.File)
+	assert.False(t, file.Name() == oldFile.Name(), "the output file didn't change")
+	require.True(t, ok, "output was not a file")
+	content, err = ioutil.ReadFile(file.Name())
+	require.NoError(t, err, "internal error: failed to read output file")
+	assert.Contains(t, string(content), expectedLog, "when writing to a new file the user line should be printed again")
+}
+
 func TestWriter_writeLine(t *testing.T) {
 	t.Parallel()
 	buffer := &bytes.Buffer{}
@@ -185,6 +218,8 @@ func TestWriter_WriteEventUserHash(t *testing.T) {
 		outputLock: sync.Mutex{},
 		output:     buffer,
 	}
+	writer.knownUsers.Add("hash1")
+	writer.knownUsers.Add("hash2")
 	data := []struct {
 		Hash string
 		*Location
@@ -206,9 +241,11 @@ func TestWriter_WriteEventUserHash(t *testing.T) {
 		}
 	}
 
+	assert.Error(t, writer.WriteEventUserHash("unknown_hash", loc1, LOGIN), "attempts to write unknown hashes directly should fail")
+
 	ew := newErrorWriter()
 	writer.output = &ew
-	assert.Error(t, writer.WriteEventUserHash("hash", loc1, LOGIN))
+	assert.Error(t, writer.WriteEventUserHash("hash1", loc1, LOGIN), "journal writer errors should be propagated")
 }
 
 func TestWriter_WriteEventUser(t *testing.T) {
@@ -229,6 +266,14 @@ func TestWriter_WriteEventUser(t *testing.T) {
 	if assert.NoError(t, writer.WriteEventUser(&user1, loc1, LOGIN)) {
 		assert.Equal(
 			t, fmt.Sprintf("*%s\t%s\n+%s\tMOS\t%d\n", user1.Name, user1.Address, hash1, time.Now().Unix()),
+			buffer.String(),
+		)
+	}
+
+	buffer.Reset()
+	if assert.NoError(t, writer.WriteEventUser(&user1, loc1, LOGOUT)) {
+		assert.Equal(
+			t, fmt.Sprintf("-%s\tMOS\t%d\n", hash1, time.Now().Unix()),
 			buffer.String(),
 		)
 	}
