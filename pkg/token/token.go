@@ -4,10 +4,14 @@ import (
 	"crypto/aes"
 	"encoding/hex"
 	"fmt"
+	"strconv"
+	"strings"
 	"time"
 )
 
+//ToDO: Startparameter KEY
 const ValidTime = 120
+const keyn = "thisis32bitlongpassphraseimusing"
 
 func CreateToken(location string) (string, error) {
 
@@ -15,9 +19,6 @@ func CreateToken(location string) (string, error) {
 		return "", fmt.Errorf("Token creation failed, because location had wrong length: %v", len(location))
 	}
 	unencryptedToken := fmt.Sprintf("%12v:%s", int64(time.Now().Unix())/int64(ValidTime)*int64(ValidTime), location)
-
-	//ToDO: Startparameter KEY
-	keyn := "thisis32bitlongpassphraseimusing"
 
 	return EncryptAES([]byte(keyn), unencryptedToken)
 }
@@ -44,7 +45,7 @@ func DecryptAES(key []byte, ciphertext string) (string, error) {
 	if len(key) != 32 {
 		return "", fmt.Errorf("key has wrong length")
 	} else if len(ciphertext) != 32 {
-		return "", fmt.Errorf("cipher has wrong length")
+		return "", fmt.Errorf("cipher has wrong length (%v)", len(ciphertext))
 	}
 	c, err := aes.NewCipher(key)
 	if err != nil {
@@ -56,4 +57,20 @@ func DecryptAES(key []byte, ciphertext string) (string, error) {
 
 	//Returns time:location
 	return string(plain), nil
+}
+
+func CheckValidTime(token string) (bool, error) {
+
+	plainToken, err := DecryptAES([]byte(keyn), token)
+	if err != nil {
+		return false, fmt.Errorf("decryption failed: %w", err)
+	}
+	tokenTime, err := strconv.ParseInt(strings.TrimSpace(strings.Split(plainToken, ":")[0]), 10, 64)
+	if err != nil {
+		return false, fmt.Errorf("splitting token failed: %w", err)
+	}
+	if time.Now().Unix()-tokenTime < (2 * ValidTime) {
+		return true, nil
+	}
+	return false, nil
 }
