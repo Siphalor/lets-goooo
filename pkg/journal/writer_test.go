@@ -6,6 +6,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"io"
+	"io/ioutil"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
 	"log"
 	"os"
@@ -42,40 +43,50 @@ func TestNewWriter(t *testing.T) {
 	assert.Error(t, err, "writer creation should fail if no output file can be created")
 }
 
-func TestWriter_LoadFrom(t *testing.T) {
+func TestNewWriter_existingJournal(t *testing.T) {
 	t.Parallel()
 	tempDir := t.TempDir()
 	filePath := GetCurrentJournalPath(tempDir)
+	file, err := os.OpenFile(filePath, os.O_CREATE|os.O_WRONLY, 0777)
+	require.NoError(t, err, "internal error: failed to create test journal file")
+	err = util.WriteString(file, "*Tester\tOrt\n")
+	require.NoError(t, err, "internal error: failed to write to test journal file")
+	_ = file.Close()
+
+	writer, err := NewWriter(tempDir)
+	require.NoError(t, err, "failed to read existing data")
+	assert.Equal(t, map[string]*Location{"nPQeHgKWuAdyhGh6NPteN7LuDLg=": nil}, writer.knownUsers)
+}
+
+func TestWriter_LoadFrom(t *testing.T) {
+	t.Parallel()
+	tempDir := t.TempDir()
+
+	Locations = map[string]*Location{
+		"TST": {Code: "TST", Name: "Teststadt"},
+		"HST": {Code: "HST", Name: "Hauptstadt"},
+	}
 
 	writer := Writer{
-		knownUsers: util.NewStringSet(10),
+		knownUsers: createKnownUserMap(10),
 		outputLock: sync.Mutex{},
 		directory:  tempDir,
 	}
-	assert.Error(t, writer.LoadFrom(filePath), "LoadFrom should not be able to read from non-existing files")
+	assert.Error(t, writer.LoadFrom(path.Join(tempDir, "unkown")), "LoadFrom should not be able to read from non-existing files")
 
+	if assert.NoError(t, writer.LoadFrom("testdata/import_journal.txt"), "failed to load writer data from prepared file") {
+		assert.Equal(
+			t,
+			map[string]*Location{
+				"P245C5uet9ZzSc0fXoOi7/0FB4I=": Locations["HST"],
+				"ASkl/7Pm/MXnARb+f7+Fhk5GeYc=": nil,
+				"oBklljrMPMa4Db3A4xsgTlfaLRw=": nil,
+			}, writer.knownUsers,
+		)
+	}
+
+	filePath := path.Join(tempDir, "invalid")
 	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
-	require.NoError(t, err, "internal error: failed to create journal file")
-
-	users := []*User{
-		{Name: "abc", Address: "def"},
-		{Name: "cde", Address: "123"},
-		{Name: "", Address: ""},
-	}
-	err = util.WriteString(file, "+ignored\n-ignored\n")
-	for _, user := range users {
-		err = util.WriteString(file, fmt.Sprintf("*%s\t%s\n", user.Name, user.Address))
-	}
-	err = file.Close()
-
-	if assert.NoError(t, writer.LoadFrom(filePath), "failed to load writer data from prepared file") {
-		for _, user := range users {
-			assert.Truef(t, writer.knownUsers.Contains(string(user.Hash())), "missing user: %#v", user)
-		}
-		assert.LessOrEqual(t, writer.knownUsers.Size(), len(users), "too many entries in knownUsers")
-	}
-
-	file, err = os.OpenFile(filePath, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0777)
 	require.NoError(t, err, "internal error: failed to create journal file")
 	err = util.WriteString(file, "*invalid line")
 	err = file.Close()
@@ -123,6 +134,58 @@ func TestWriter_UpdateOutput(t *testing.T) {
 	assert.Error(t, writer.UpdateOutput(), "failing to create the journal output should be reported")
 }
 
+func TestUpdateOutput_complete(t *testing.T) {
+	t.Parallel()
+
+	expectedLog := "*Tester\tTeststadt\n" + "+HjLV+aPwKzq3szuae53Zv5n4puw=\tHST\t"
+
+	tempDir := t.TempDir()
+	oldLogPath := path.Join(tempDir, "old")
+	oldFile, err := os.OpenFile(oldLogPath, os.O_CREATE|os.O_WRONLY, 0777)
+	require.NoError(t, err, "internal error: failed to open new file for output")
+	writer := Writer{
+		knownUsers: createKnownUserMap(100),
+		output:     oldFile,
+		outputLock: sync.Mutex{},
+		directory:  tempDir,
+	}
+	user := User{Name: "Tester", Address: "Teststadt"}
+	location := Location{Name: "Hauptstadt", Code: "HST"}
+	require.NoError(t, writer.WriteEventUser(&user, &location, LOGIN), "failed to write user event")
+	content, err := ioutil.ReadFile(oldLogPath)
+	require.NoError(t, err, "internal error: failed to read output file")
+	assert.Contains(t, string(content), expectedLog, "invalid text written to original journal")
+
+	require.NoError(t, writer.UpdateOutput(), "failed to update the output")
+	require.NoError(t, writer.WriteEventUser(&user, &location, LOGIN), "failed to write user event")
+	file, ok := writer.output.(*os.File)
+	assert.False(t, file.Name() == oldFile.Name(), "the output file didn't change")
+	require.True(t, ok, "output was not a file")
+	content, err = ioutil.ReadFile(file.Name())
+	require.NoError(t, err, "internal error: failed to read output file")
+	assert.Contains(t, string(content), expectedLog, "when writing to a new file the user line should be printed again")
+}
+
+func TestWriter_GetCurrentUserLocation(t *testing.T) {
+	loc1 := Location{Name: "Test1"}
+	writer := Writer{
+		knownUsers: map[string]*Location{
+			"hash1": &loc1,
+			"hash2": nil,
+		},
+	}
+	loc, err := writer.GetCurrentUserLocation("hash1")
+	if assert.NoError(t, err) {
+		assert.Equal(t, &loc1, loc)
+	}
+	loc, err = writer.GetCurrentUserLocation("hash2")
+	if assert.NoError(t, err) {
+		assert.Nil(t, loc)
+	}
+	_, err = writer.GetCurrentUserLocation("unknown")
+	assert.Error(t, err, "getting the location of an unknown user should produce an error")
+}
+
 func TestWriter_writeLine(t *testing.T) {
 	t.Parallel()
 	buffer := &bytes.Buffer{}
@@ -143,7 +206,7 @@ func TestWriter_WriteUserIfUnknown(t *testing.T) {
 	t.Parallel()
 	buffer := &bytes.Buffer{}
 	writer := Writer{
-		knownUsers: util.NewStringSet(1),
+		knownUsers: createKnownUserMap(1),
 		outputLock: sync.Mutex{},
 		output:     buffer,
 	}
@@ -157,8 +220,8 @@ func TestWriter_WriteUserIfUnknown(t *testing.T) {
 	}
 
 	buffer.Reset()
-	writer.knownUsers = util.NewStringSet(1)
-	writer.knownUsers.Add(hash)
+	writer.knownUsers = createKnownUserMap(1)
+	writer.knownUsers[hash] = nil
 	retHash, err = writer.WriteUserIfUnknown(&user)
 	assert.Equal(t, hash, retHash, "the returned hash should be accurate")
 	if assert.NoError(t, err) {
@@ -166,7 +229,7 @@ func TestWriter_WriteUserIfUnknown(t *testing.T) {
 	}
 
 	buffer.Reset()
-	writer.knownUsers = util.NewStringSet(0)
+	writer.knownUsers = createKnownUserMap(0)
 	ew := newErrorWriter()
 	writer.output = &ew
 	_, err = writer.WriteUserIfUnknown(&user)
@@ -181,10 +244,12 @@ func TestWriter_WriteEventUserHash(t *testing.T) {
 	loc2 := &Location{Name: "Teststadt", Code: "TST"}
 	buffer := &bytes.Buffer{}
 	writer := Writer{
-		knownUsers: util.NewStringSet(2),
+		knownUsers: createKnownUserMap(2),
 		outputLock: sync.Mutex{},
 		output:     buffer,
 	}
+	writer.knownUsers["hash1"] = nil
+	writer.knownUsers["hash2"] = nil
 	data := []struct {
 		Hash string
 		*Location
@@ -196,7 +261,6 @@ func TestWriter_WriteEventUserHash(t *testing.T) {
 		{"hash1", loc2, LOGIN, "+hash1\tTST"},
 		{"hash2", loc1, LOGIN, "+hash2\tMOS"},
 		{"hash2", loc1, LOGOUT, "-hash2\tMOS"},
-		{"hash2", loc2, LOGOUT, "-hash2\tTST"},
 	}
 
 	for _, entry := range data {
@@ -206,9 +270,14 @@ func TestWriter_WriteEventUserHash(t *testing.T) {
 		}
 	}
 
+	assert.Equal(t, loc2, writer.knownUsers["hash1"])
+	assert.Equal(t, (*Location)(nil), writer.knownUsers["hash2"])
+
+	assert.Error(t, writer.WriteEventUserHash("unknown_hash", loc1, LOGIN), "attempts to write unknown hashes directly should fail")
+
 	ew := newErrorWriter()
 	writer.output = &ew
-	assert.Error(t, writer.WriteEventUserHash("hash", loc1, LOGIN))
+	assert.Error(t, writer.WriteEventUserHash("hash1", loc1, LOGIN), "journal writer errors should be propagated")
 }
 
 func TestWriter_WriteEventUser(t *testing.T) {
@@ -217,7 +286,7 @@ func TestWriter_WriteEventUser(t *testing.T) {
 	loc2 := &Location{Name: "Teststadt", Code: "TST"}
 	buffer := bytes.Buffer{}
 	writer := Writer{
-		knownUsers: util.NewStringSet(2),
+		knownUsers: createKnownUserMap(2),
 		outputLock: sync.Mutex{},
 		output:     &buffer,
 	}
@@ -234,7 +303,15 @@ func TestWriter_WriteEventUser(t *testing.T) {
 	}
 
 	buffer.Reset()
-	writer.knownUsers.Add(hash2)
+	if assert.NoError(t, writer.WriteEventUser(&user1, loc1, LOGOUT)) {
+		assert.Equal(
+			t, fmt.Sprintf("-%s\tMOS\t%d\n", hash1, time.Now().Unix()),
+			buffer.String(),
+		)
+	}
+
+	buffer.Reset()
+	writer.knownUsers[hash2] = nil
 	if assert.NoError(t, writer.WriteEventUser(&user2, loc2, LOGOUT)) {
 		assert.Equal(
 			t, fmt.Sprintf("-%s\tTST\t%d\n", hash2, time.Now().Unix()),
@@ -247,7 +324,7 @@ func TestWriter_WriteEventUser(t *testing.T) {
 	writer.output = &ew
 	assert.Error(t, writer.WriteEventUser(&user2, loc1, LOGIN))
 
-	writer.knownUsers.Remove(hash1)
+	delete(writer.knownUsers, hash1)
 	assert.Error(t, writer.WriteEventUser(&user1, loc1, LOGOUT))
 }
 
