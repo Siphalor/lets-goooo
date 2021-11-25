@@ -21,3 +21,7 @@
 *.pdf
 *.html
 out/
+
+# Pandoc filters
+pandoc/pandoc-crossref*
+!pandoc/pandoc-crossref.yaml
