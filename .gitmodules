@@ -1,6 +1,6 @@
 [submodule "src"]
 	path = src
-	url = https://github.com/Siphalor/lets-goooo
+	url = git@github.com:Siphalor/lets-goooo
 [submodule "pandoc/pandoc-latex-template"]
 	path = pandoc/pandoc-latex-template
 	url = https://github.com/Wandmalfarbe/pandoc-latex-template
