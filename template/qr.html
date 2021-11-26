@@ -1,8 +1,24 @@
 <html lang="en">
-  <head>
-    <title>Let's Goooo</title>
-  </head>
-  <body style="text-align:center;">
-    <img src="{{.PngUrl}}?location={{.Location}}" alt="QRCode couldn't be generated for location. More information in the console.">
-  </body>
+	{{ template "head.html" (printf "QR code for %s" .Location) }}
+	<body>
+		<main>
+			<img src="{{.PngUrl}}?location={{.Location}}" alt="QRCode couldn't be generated for location. More information in the console." class="center-m" id="qrc">
+			<script>
+				const img = document.getElementById("qrc");
+                const qrBaseUrl = img.src;
+                (function () {
+                    // Who doesn't like rainbow qr codes?
+					const queryParams = new URLSearchParams(window.location.search);
+                    if (queryParams.has("rainbow")) {
+                        img.classList.add("rainbow");
+					}
+                })()
+				setInterval(function () {
+                    // Changing the query params ensures that the browser doesn't cache the image
+					img.src = qrBaseUrl + "&time=" + new Date().getTime();
+                }, 30000)
+			</script>
+		</main>
+		{{ template "footer.html" . }}
+	</body>
 </html>

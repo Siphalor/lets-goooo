@@ -15,11 +15,6 @@ import (
 
 var logIOUrl = "https://localhost:4443/"
 
-type QrCodeUrl struct {
-	PngUrl   string
-	Location string
-}
-
 // RunWebservers opening login/out and qrCode webservers at the given ports
 func RunWebservers(portLogin int, portQr int) error {
 	if portLogin == portQr {
@@ -119,7 +114,13 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func qrHandler(w http.ResponseWriter, r *http.Request) {
-	data := QrCodeUrl{fmt.Sprintf("%s.png", r.URL.Path), r.URL.Query().Get("location")}
+	data := struct {
+		PngUrl   string
+		Location string
+	}{
+		PngUrl:   fmt.Sprintf("%s.png", r.URL.Path),
+		Location: r.URL.Query().Get("location"),
+	}
 	executeTemplate(w, "qr.html", data, false)
 }
 
@@ -128,7 +129,7 @@ func executeTemplate(w http.ResponseWriter, file string, data interface{}, testD
 	if !testData {
 		file = GetFilePath() + "template/" + file
 	}
-	temp, err := template.ParseFiles(file)
+	temp, err := template.ParseFiles(file, "template/head.html", "template/footer.html")
 	if err != nil {
 		log.Printf("failed to parse template: %v \n", err)
 		return
