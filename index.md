@@ -1,4 +1,4 @@
----
+i---
 title: Let's Goooo Dokumentation
 author: 1103207, 3106335, 4485500
 date: \today
@@ -39,9 +39,26 @@ Dieses Modul findet sich als `argp` mit dem in @fig:uml-argp dargestellten Klass
 // TODO
 ```
 
+## Token
+
+Die Generation des Token
+
+## QrCode
+
 # Anwenderdokumentation
 
 ## Konfiguration der Orte {#sec:usage-locations}
+
+Die Orte werden aus einer XML Datein übernommen, welche nach dem folgenden Schema aufgebaut ist.
+
+```XML
+<locations>
+<location name="Mosbach" code="MOS"></location>
+<location name="Bad Mergentheim" code="MGH"></location>
+</locations>
+```
+
+Um einen neuen Ort hinzuzufügen kann lediglich in der XML Datei ein neuer location Tag, mit dem Namen und einem eindeutigem dreistelligem Code, eingefügt werden.
 
 ## Analyzer
 
