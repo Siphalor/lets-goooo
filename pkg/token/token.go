@@ -4,6 +4,7 @@ import (
 	"crypto/aes"
 	"encoding/hex"
 	"fmt"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
 	"strconv"
 	"strings"
 	"time"
@@ -59,18 +60,30 @@ func DecryptAES(key []byte, ciphertext string) (string, error) {
 	return string(plain), nil
 }
 
-func CheckValidTime(token string) (bool, error) {
-
+// Validate validates the given token and returns the contained journal.Location on success.
+func Validate(token string) (*journal.Location, error) {
 	plainToken, err := DecryptAES([]byte(keyn), token)
 	if err != nil {
-		return false, fmt.Errorf("decryption failed: %w", err)
+		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
-	tokenTime, err := strconv.ParseInt(strings.TrimSpace(strings.Split(plainToken, ":")[0]), 10, 64)
+	parts := strings.SplitN(plainToken, ":", 2)
+	if len(parts) < 2 {
+		return nil, fmt.Errorf("invalid token data: not enough parts")
+	}
+
+	tokenTime, err := strconv.ParseInt(strings.TrimSpace(parts[0]), 10, 64)
 	if err != nil {
-		return false, fmt.Errorf("splitting token failed: %w", err)
+		return nil, fmt.Errorf("failed to parse time from token: %w", err)
 	}
+
+	locCode := strings.TrimSpace(parts[1])
+	location, exists := journal.Locations[locCode]
+	if !exists {
+		return nil, fmt.Errorf("unknown location code: %v", locCode)
+	}
+
 	if time.Now().Unix()-tokenTime < (2 * ValidTime) {
-		return true, nil
+		return location, nil
 	}
-	return false, nil
+	return nil, fmt.Errorf("token has timed out: token timestamp: %v", tokenTime)
 }
