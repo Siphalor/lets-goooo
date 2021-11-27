@@ -55,8 +55,7 @@ func RunWebservers(portLogin int, portQr int) error {
 
 	//creating webserver for LogIO
 	handlerLogIO := map[string]http.HandlerFunc{
-		"/":       defaultHandler,
-		"/?token": cookieHandler,
+		"/":       cookieHandler,
 		"/login":  loginHandler,
 		"/logout": logoutHandler,
 	}
@@ -82,23 +81,66 @@ func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 }
 
 func cookieHandler(w http.ResponseWriter, r *http.Request) {
+	if !r.URL.Query().Has("token") {
+		defaultHandler(w, r)
+		return
+	}
+
 	userdataCookie := (*http.Cookie)(nil)
 	userdataCookie, err := r.Cookie("Userdata")
 	if err != nil {
-		loginHandler(w, r)
+		executeLogin(w, (*journal.User)(nil), r.URL.Query().Get("token"))
 		return
 	}
 	userdata, err := Validate(userdataCookie.Value)
 	if err != nil {
-		loginHandler(w, r)
+		executeLogin(w, (*journal.User)(nil), r.URL.Query().Get("token"))
 		return
 	}
 	location, err := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
 	if err != nil || location == nil {
-		loginHandler(w, r)
+		executeLogin(w, &userdata, r.URL.Query().Get("token"))
 	} else {
-		logoutHandler(w, r)
+		executeLogout(w, &userdata, r.URL.Query().Get("token"))
 	}
+}
+
+func executeLogin(w http.ResponseWriter, user *journal.User, toke string) {
+	location, err := token.Validate(toke)
+	if err != nil {
+		log.Printf("invalid token: %v \n", err)
+		redirectToHome(w, 400)
+		return
+	}
+
+	executeTemplate(w, "login.html", struct {
+		User     *journal.User
+		Location *journal.Location
+		Token    string
+	}{
+		User:     user,
+		Location: location,
+		Token:    toke,
+	}, false)
+}
+
+func executeLogout(w http.ResponseWriter, user *journal.User, toke string) {
+	location, err := token.Validate(toke)
+	if err != nil {
+		log.Printf("invalid token: %v \n", err)
+		redirectToHome(w, 400)
+		return
+	}
+
+	executeTemplate(w, "logout.html", struct {
+		User     *journal.User
+		Location *journal.Location
+		Token    string
+	}{
+		User:     user,
+		Location: location,
+		Token:    toke,
+	}, false)
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -134,14 +176,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		//create cookie
 		userdataCookie := &http.Cookie{
 			Name:  "Userdata",
-			Value: data + ";" + hash,
+			Value: data + ":" + hash,
 		}
 		http.SetCookie(w, userdataCookie)
 	}
 
 	location, _ := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
-
-	if location != nil {
+	fmt.Printf("%#v", location)
+	if location != (*journal.Location)(nil) {
 		//no Location to be logged in
 		log.Printf("user is already elsewhere: %v \n", err)
 		redirectToHome(w, 400)
