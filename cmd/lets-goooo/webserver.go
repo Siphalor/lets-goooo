@@ -154,7 +154,13 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//create userdata
-	user := r.Form.Get("user")
+	err = r.ParseForm()
+	if err != nil {
+		log.Printf("couldn't parse form: %v \n", err)
+		redirectToHome(w, 400)
+		return
+	}
+	user := r.Form.Get("name")
 	address := r.Form.Get("address")
 
 	userdata := journal.User{
@@ -182,7 +188,6 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	location, _ := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
-	fmt.Printf("%#v", location)
 	if location != (*journal.Location)(nil) {
 		//no Location to be logged in
 		log.Printf("user is already elsewhere: %v \n", err)
