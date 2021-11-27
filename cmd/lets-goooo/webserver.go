@@ -2,6 +2,8 @@ package main
 
 import (
 	"context"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
+
 	//"encoding/base64"
 	"fmt"
 	"html/template"
@@ -20,6 +22,7 @@ import (
 //will be overwritten in main class by flags
 var logIOUrl = "https://localhost:4443/"
 var dataJournal = (*journal.Writer)(nil)
+var secret = "Some kind of secret to generate a hash"
 
 // RunWebservers opening login/out and qrCode webservers at the given ports
 func RunWebservers(portLogin int, portQr int) error {
@@ -78,25 +81,23 @@ func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	executeTemplate(w, "default.html", nil, false)
 }
 
-func cookieHandler(w http.ResponseWriter, _ *http.Request) {
-	/*userdataCookie := (*http.Cookie) (nil)
-	for i, c := range r.Cookies() {
-		fmt.Printf("%v : %v \n", i, c)
-		if c.Name == "Userdata" {
-			userdataCookie = c
-		}
-	}
-	userdata, err = cookie.validate(userdataCookie)
+func cookieHandler(w http.ResponseWriter, r *http.Request) {
+	userdataCookie := (*http.Cookie)(nil)
+	cookie, err := r.Cookie("Userdata")
 	if err != nil {
-		loginHandler(w,r)
+		return
+	}
+	userdata, err = Validate(userdataCookie.Value)
+	if err != nil {
+		loginHandler(w, r)
 		return
 	}
 	location, err := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
 	if err != nil || location == nil {
-		loginHandler(w,r)
+		loginHandler(w, r)
 	} else {
-		logoutHandler(w,r)
-	}*/
+		logoutHandler(w, r)
+	}
 
 	executeTemplate(w, "default.html", nil, false) //TODO
 }
@@ -107,7 +108,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	tokenLocation, err := token.Validate(tokenString)
 	if err != nil {
 		log.Printf("invalid token: %v \n", err)
-		redirectToHome(w)
+		redirectToHome(w, 400)
 		return
 	}
 
@@ -119,28 +120,40 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 			userdataCookie = c
 		}
 	}
-	userdata, err := cookie.Validate(userdataCookie.Value)
+	userdata, err := Validate(userdataCookie.Value)
 
 	if err != nil {
+		//create userdata
+		user := r.Form.Get("user")
+		address := r.Form.Get("address")
+
+		userdata = journal.User{
+			Name:    user,
+			Address: address,
+		}
+
+		data := util.Base64Encode(([]byte)(userdata.ToJournalLine()))
+		hash := util.Base64Encode(util.HashString(data + "\t" + secret))
 
 		//create cookie
 		userdataCookie := &http.Cookie{
 			Name:  "Userdata",
-			Value: "",
+			Value: data + ";" + hash,
 		}
 		http.SetCookie(w, userdataCookie)
 	}
 
-	location, _ := dataJournal.GetCurrentUserLocation(userdata.Hash())
+	location, _ := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
 
 	if location != nil {
 		//no Location to be logged in
 		log.Printf("user is already elsewhere: %v \n", err)
-		redirectToHome(w)
+		redirectToHome(w, 400)
 		return
 	}
 
-	executeTemplate(w, "login.html", nil, false) //TODO
+	//return to Home
+	redirectToHome(w, 302)
 }
 
 func logoutHandler(w http.ResponseWriter, r *http.Request) {
@@ -149,7 +162,7 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	tokenLocation, err := token.Validate(tokenString)
 	if err != nil {
 		log.Printf("invalid token: %v \n", err)
-		redirectToHome(w)
+		redirectToHome(w, 400)
 		return
 	}
 
@@ -161,40 +174,40 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 			userdataCookie = c
 		}
 	}
-	userdata, err := cookie.Validate(userdataCookie.Value)
+	userdata, err := Validate(userdataCookie.Value)
 
 	if err != nil {
 		//no User to be logged out
 		log.Printf("failed to read user cookie: %v \n", err)
-		redirectToHome(w)
+		redirectToHome(w, 400)
 		return
 	}
 
 	//check if user is at a location
-	location, err := dataJournal.GetCurrentUserLocation(userdata.Hash())
+	location, err := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
 	if err != nil {
 		log.Printf("user is at no location: %v \n", err)
-		redirectToHome(w)
+		redirectToHome(w, 400)
 		return
 	}
 
 	//check if token is valid for user location
 	if tokenLocation != location {
 		log.Printf("user is not at the token's location: %v \n", err)
-		redirectToHome(w)
+		redirectToHome(w, 400)
 		return
 	}
 
 	//log out user
-	err = dataJournal.WriteEventUser(userdata, location, journal.LOGOUT)
+	err = dataJournal.WriteEventUser(&userdata, location, journal.LOGOUT)
 	if err != nil {
 		log.Printf("couldn't write into journal: %v \n", err)
-		redirectToHome(w)
+		redirectToHome(w, 400)
 		return
 	}
 
 	//return to Home
-	redirectToHome(w)
+	redirectToHome(w, 302)
 }
 
 func qrPngHandler(w http.ResponseWriter, r *http.Request) {
@@ -302,7 +315,7 @@ func GetFilePath() string {
 	}
 }
 
-func redirectToHome(w http.ResponseWriter) {
+func redirectToHome(w http.ResponseWriter, statusCode int) {
 	w.Header().Add("Location", logIOUrl)
-	w.WriteHeader(302)
+	w.WriteHeader(statusCode)
 }
