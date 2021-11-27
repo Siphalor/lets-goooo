@@ -60,7 +60,7 @@ func TestCreateToken(t *testing.T) {
 	assert.Equal(t, expectedToken, actual, "wrong Token created")
 }
 
-func TestCheckValidTime(t *testing.T) {
+func TestValidate(t *testing.T) {
 	journal.Locations = map[string]*journal.Location{
 		"MOS": {Code: "MOS", Name: "Mosbach"},
 	}
@@ -79,6 +79,11 @@ func TestCheckValidTime(t *testing.T) {
 
 	//Outdated token
 	location, err = Validate(encrypt("000000000001:MOS"))
+	assert.Error(t, err)
+
+	//Unknown location
+	incorrectToken, _ := CreateToken("ZZZ")
+	location, err = Validate(incorrectToken)
 	assert.Error(t, err)
 
 	correctToken, _ := CreateToken("MOS")
