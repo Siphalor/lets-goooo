@@ -83,11 +83,12 @@ func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 
 func cookieHandler(w http.ResponseWriter, r *http.Request) {
 	userdataCookie := (*http.Cookie)(nil)
-	cookie, err := r.Cookie("Userdata")
+	userdataCookie, err := r.Cookie("Userdata")
 	if err != nil {
+		loginHandler(w, r)
 		return
 	}
-	userdata, err = Validate(userdataCookie.Value)
+	userdata, err := Validate(userdataCookie.Value)
 	if err != nil {
 		loginHandler(w, r)
 		return
@@ -98,8 +99,6 @@ func cookieHandler(w http.ResponseWriter, r *http.Request) {
 	} else {
 		logoutHandler(w, r)
 	}
-
-	executeTemplate(w, "default.html", nil, false) //TODO
 }
 
 func loginHandler(w http.ResponseWriter, r *http.Request) {
@@ -112,25 +111,22 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	//search for Cookie holding Userdata
-	userdataCookie := (*http.Cookie)(nil)
-	for i, c := range r.Cookies() {
-		fmt.Printf("%v : %v \n", i, c)
-		if c.Name == "Userdata" {
-			userdataCookie = c
-		}
+	//create userdata
+	user := r.Form.Get("user")
+	address := r.Form.Get("address")
+
+	userdata := journal.User{
+		Name:    user,
+		Address: address,
 	}
-	userdata, err := Validate(userdataCookie.Value)
+
+	//search for Cookie holding Userdata
+	userdataCookie, err := r.Cookie("Userdata")
+	if userdataCookie != nil {
+		userdata, err = Validate(userdataCookie.Value)
+	}
 
 	if err != nil {
-		//create userdata
-		user := r.Form.Get("user")
-		address := r.Form.Get("address")
-
-		userdata = journal.User{
-			Name:    user,
-			Address: address,
-		}
 
 		data := util.Base64Encode(([]byte)(userdata.ToJournalLine()))
 		hash := util.Base64Encode(util.HashString(data + "\t" + secret))
@@ -152,6 +148,14 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	//create entry in journal
+	err = dataJournal.WriteEventUser(&userdata, tokenLocation, journal.LOGIN)
+	if err != nil {
+		log.Printf("couldn't write into journal: %v \n", err)
+		redirectToHome(w, 400)
+		return
+	}
+
 	//return to Home
 	redirectToHome(w, 302)
 }
@@ -167,13 +171,14 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	//search for Cookie holding Userdata
-	userdataCookie := (*http.Cookie)(nil)
-	for i, c := range r.Cookies() {
-		fmt.Printf("%v : %v \n", i, c)
-		if c.Name == "Userdata" {
-			userdataCookie = c
-		}
+	userdataCookie, err := r.Cookie("Userdata")
+	if err != nil {
+		//no User to be logged out
+		log.Printf("failed to read user cookie: %v \n", err)
+		redirectToHome(w, 400)
+		return
 	}
+
 	userdata, err := Validate(userdataCookie.Value)
 
 	if err != nil {
