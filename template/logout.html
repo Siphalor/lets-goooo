@@ -5,7 +5,7 @@
 		<main>
 			<img src="../assets/logoooo.svg" alt="Logo" class="logo" />
 			<h1>Logout of {{ html .Location.Name }}</h1>
-			<form action="/login?token={{ urlquery .Token }}" method="post">
+			<form action="/logout?token={{ urlquery .Token }}" method="post">
 				<button type="submit" class="primary big">Yeet yourself out of here</button>
 			</form>
 		</main>
