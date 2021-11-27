@@ -2,9 +2,12 @@ package main
 
 import (
 	"context"
+	//"encoding/base64"
 	"fmt"
 	"html/template"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
+	//"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
 	"log"
 	"net/http"
 	"runtime"
@@ -13,7 +16,10 @@ import (
 	"time"
 )
 
+//setting default values for global variables
+//will be overwritten in main class by flags
 var logIOUrl = "https://localhost:4443/"
+var dataJournal = (*journal.Writer)(nil)
 
 // RunWebservers opening login/out and qrCode webservers at the given ports
 func RunWebservers(portLogin int, portQr int) error {
@@ -47,6 +53,7 @@ func RunWebservers(portLogin int, portQr int) error {
 	//creating webserver for LogIO
 	handlerLogIO := map[string]http.HandlerFunc{
 		"/":       defaultHandler,
+		"/?token": cookieHandler,
 		"/login":  loginHandler,
 		"/logout": logoutHandler,
 	}
@@ -71,12 +78,123 @@ func defaultHandler(w http.ResponseWriter, _ *http.Request) {
 	executeTemplate(w, "default.html", nil, false)
 }
 
-func loginHandler(w http.ResponseWriter, _ *http.Request) {
+func cookieHandler(w http.ResponseWriter, _ *http.Request) {
+	/*userdataCookie := (*http.Cookie) (nil)
+	for i, c := range r.Cookies() {
+		fmt.Printf("%v : %v \n", i, c)
+		if c.Name == "Userdata" {
+			userdataCookie = c
+		}
+	}
+	userdata, err = cookie.validate(userdataCookie)
+	if err != nil {
+		loginHandler(w,r)
+		return
+	}
+	location, err := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
+	if err != nil || location == nil {
+		loginHandler(w,r)
+	} else {
+		logoutHandler(w,r)
+	}*/
+
 	executeTemplate(w, "default.html", nil, false) //TODO
 }
 
-func logoutHandler(w http.ResponseWriter, _ *http.Request) {
-	executeTemplate(w, "default.html", nil, false) //TODO
+func loginHandler(w http.ResponseWriter, r *http.Request) {
+	//check if token is valid
+	tokenString := r.URL.Query().Get("token")
+	tokenLocation, err := token.Validate(tokenString)
+	if err != nil {
+		log.Printf("invalid token: %v \n", err)
+		redirectToHome(w)
+		return
+	}
+
+	//search for Cookie holding Userdata
+	userdataCookie := (*http.Cookie)(nil)
+	for i, c := range r.Cookies() {
+		fmt.Printf("%v : %v \n", i, c)
+		if c.Name == "Userdata" {
+			userdataCookie = c
+		}
+	}
+	userdata, err := cookie.Validate(userdataCookie.Value)
+
+	if err != nil {
+
+		//create cookie
+		userdataCookie := &http.Cookie{
+			Name:  "Userdata",
+			Value: "",
+		}
+		http.SetCookie(w, userdataCookie)
+	}
+
+	location, _ := dataJournal.GetCurrentUserLocation(userdata.Hash())
+
+	if location != nil {
+		//no Location to be logged in
+		log.Printf("user is already elsewhere: %v \n", err)
+		redirectToHome(w)
+		return
+	}
+
+	executeTemplate(w, "login.html", nil, false) //TODO
+}
+
+func logoutHandler(w http.ResponseWriter, r *http.Request) {
+	//check if token is valid
+	tokenString := r.URL.Query().Get("token")
+	tokenLocation, err := token.Validate(tokenString)
+	if err != nil {
+		log.Printf("invalid token: %v \n", err)
+		redirectToHome(w)
+		return
+	}
+
+	//search for Cookie holding Userdata
+	userdataCookie := (*http.Cookie)(nil)
+	for i, c := range r.Cookies() {
+		fmt.Printf("%v : %v \n", i, c)
+		if c.Name == "Userdata" {
+			userdataCookie = c
+		}
+	}
+	userdata, err := cookie.Validate(userdataCookie.Value)
+
+	if err != nil {
+		//no User to be logged out
+		log.Printf("failed to read user cookie: %v \n", err)
+		redirectToHome(w)
+		return
+	}
+
+	//check if user is at a location
+	location, err := dataJournal.GetCurrentUserLocation(userdata.Hash())
+	if err != nil {
+		log.Printf("user is at no location: %v \n", err)
+		redirectToHome(w)
+		return
+	}
+
+	//check if token is valid for user location
+	if tokenLocation != location {
+		log.Printf("user is not at the token's location: %v \n", err)
+		redirectToHome(w)
+		return
+	}
+
+	//log out user
+	err = dataJournal.WriteEventUser(userdata, location, journal.LOGOUT)
+	if err != nil {
+		log.Printf("couldn't write into journal: %v \n", err)
+		redirectToHome(w)
+		return
+	}
+
+	//return to Home
+	redirectToHome(w)
 }
 
 func qrPngHandler(w http.ResponseWriter, r *http.Request) {
@@ -182,4 +300,9 @@ func GetFilePath() string {
 	} else {
 		return filename[0:index]
 	}
+}
+
+func redirectToHome(w http.ResponseWriter) {
+	w.Header().Add("Location", logIOUrl)
+	w.WriteHeader(302)
 }
