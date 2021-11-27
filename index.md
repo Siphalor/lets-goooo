@@ -39,11 +39,17 @@ Dieses Modul findet sich als `argp` mit dem in @fig:uml-argp dargestellten Klass
 // TODO
 ```
 
-## Token
+## Token & QrCode
 
-Die Generation des Token
+Die Generation des Token nutzt das übergebene Kürzel des Standortes und die aktuelle Unix-Zeit, gerundet auf die Gültigkeitsdauer. 
+Dies wird mit einem Doppelpunkt zu einem String von 16 Zeichen kombiniert, welcher an die Verschlüsselungsmethode übergeben wird.
+Diese nutzt AES um den String, mit dem per Startparamter übergebenen Schlüssel, zu verschlüsseln. 
+Dadurch hat man einen nicht lesbaren Token, welcher Standort spezifisch ist und zugleich die Zeit des Aufrufes enthällt.
+Zur internen Nutzung ist desweiteren eine Methode zum entschlüsseln implementiert. 
+Diese wird unteranderem von der Funktion Validate genutzt, um einen Token auf seine aktualität zu prüfen und den Standort zurückzugeben.
 
-## QrCode
+GetQrCode lässt zunächst einen Token erstellen und erstellt einen QrCode für den String aus der Startparameter URL und dem Token.
+Dieser wird zurück gegeben als Byte Array.
 
 # Anwenderdokumentation
 
