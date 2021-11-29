@@ -22,10 +22,10 @@ import (
 //will be overwritten in main class by flags
 var logIOUrl = "https://localhost:4443/"
 var dataJournal = (*journal.Writer)(nil)
-var secret = "Some kind of secret to generate a hash"
+var cookieSecret = "Some kind of cookie secret to generate a hash"
 
 // RunWebservers opening login/out and qrCode webservers at the given ports
-func RunWebservers(portLogin int, portQr int) error {
+func RunWebservers(portLogin uint, portQr uint) error {
 	if portLogin == portQr {
 		return fmt.Errorf("can't use the same port for two webservers")
 	}
@@ -129,7 +129,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 
 		data := util.Base64Encode(([]byte)(userdata.ToJournalLine()))
-		hash := util.Base64Encode(util.HashString(data + "\t" + secret))
+		hash := util.Base64Encode(util.HashString(data + "\t" + cookieSecret))
 
 		//create cookie
 		userdataCookie := &http.Cookie{
@@ -280,7 +280,7 @@ func executeTemplate(w http.ResponseWriter, file string, data interface{}, testD
 /*	CreateWebserver creates a webserver at the given port
  *	the handlers of the webserver are given by the handler map
  */
-func CreateWebserver(port int, handlers map[string]http.HandlerFunc) (*http.Server, func()) {
+func CreateWebserver(port uint, handlers map[string]http.HandlerFunc) (*http.Server, func()) {
 	mux := http.NewServeMux()
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 

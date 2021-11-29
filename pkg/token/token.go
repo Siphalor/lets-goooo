@@ -10,9 +10,8 @@ import (
 	"time"
 )
 
-//ToDO: Startparameter KEY
-const ValidTime = 120
-const keyn = "thisis32bitlongpassphraseimusing"
+var ValidTime int64 = 120
+var EncryptionKey = "thisis32bitlongpassphraseimusing"
 
 func CreateToken(location string) (string, error) {
 
@@ -21,7 +20,7 @@ func CreateToken(location string) (string, error) {
 	}
 	unencryptedToken := fmt.Sprintf("%12v:%s", int64(time.Now().Unix())/int64(ValidTime)*int64(ValidTime), location)
 
-	return EncryptAES([]byte(keyn), unencryptedToken)
+	return EncryptAES([]byte(EncryptionKey), unencryptedToken)
 }
 
 func EncryptAES(key []byte, plaintext string) (string, error) {
@@ -62,7 +61,7 @@ func DecryptAES(key []byte, ciphertext string) (string, error) {
 
 // Validate validates the given token and returns the contained journal.Location on success.
 func Validate(token string) (*journal.Location, error) {
-	plainToken, err := DecryptAES([]byte(keyn), token)
+	plainToken, err := DecryptAES([]byte(EncryptionKey), token)
 	if err != nil {
 		return nil, fmt.Errorf("decryption failed: %w", err)
 	}
