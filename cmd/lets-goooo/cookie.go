@@ -9,7 +9,7 @@ import (
 
 func Validate(string2 string) (journal.User, error) {
 
-	userData := strings.Split(string2, ";")
+	userData := strings.Split(string2, ":")
 
 	if util.Base64Encode(util.HashString(userData[0]+"\t"+cookieSecret)) == userData[1] {
 		userData0, _ := util.Base64Decode(userData[0])
