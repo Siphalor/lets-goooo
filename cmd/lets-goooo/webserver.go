@@ -306,10 +306,12 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 
 // executeTemplate creates a Template from a given file and writes the text filled with data into the http.Response
 func executeTemplate(w http.ResponseWriter, file string, data interface{}, testData bool) {
+	files := []string{file}
 	if !testData {
-		file = GetFilePath() + "template/" + file
+		base := GetFilePath() + "/"
+		files = []string{base + "template/" + file, base + "template/head.html", base + "template/footer.html"}
 	}
-	temp, err := template.ParseFiles(file, "template/head.html", "template/footer.html")
+	temp, err := template.ParseFiles(files...)
 	if err != nil {
 		log.Printf("failed to parse template: %v \n", err)
 		return
