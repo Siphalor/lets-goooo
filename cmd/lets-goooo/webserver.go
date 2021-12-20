@@ -19,7 +19,7 @@ import (
 //will be overwritten in main class by flags
 var logIOUrl = "https://localhost:4443/"
 var dataJournal = (*journal.Writer)(nil)
-var cookieSecret = "Some kind of cookie secret to generate a hash"
+var cookieSecret = ""
 
 // RunWebservers opening login/out and qrCode webservers at the given ports
 func RunWebservers(portLogin uint, portQr uint) error {
@@ -305,9 +305,9 @@ func qrHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // executeTemplate creates a Template from a given file and writes the text filled with data into the http.Response
-func executeTemplate(w http.ResponseWriter, file string, data interface{}, testData bool) {
+func executeTemplate(w http.ResponseWriter, file string, data interface{}, directFilePath bool) {
 	files := []string{file}
-	if !testData {
+	if !directFilePath {
 		base := GetFilePath() + "/"
 		files = []string{base + "template/" + file, base + "template/head.html", base + "template/footer.html"}
 	}
