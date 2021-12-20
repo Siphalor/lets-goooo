@@ -105,8 +105,8 @@ func cookieHandler(w http.ResponseWriter, r *http.Request) {
 func executeLogin(w http.ResponseWriter, user *journal.User, toke string) {
 	location, err := token.Validate(toke)
 	if err != nil {
-		log.Printf("invalid token: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("invalid token: %v\n", err)
+		writeError(w, 400, "invalid token")
 		return
 	}
 
@@ -124,8 +124,8 @@ func executeLogin(w http.ResponseWriter, user *journal.User, toke string) {
 func executeLogout(w http.ResponseWriter, user *journal.User, toke string) {
 	location, err := token.Validate(toke)
 	if err != nil {
-		log.Printf("invalid token: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("invalid token: %v\n", err)
+		writeError(w, 400, "invalid token")
 		return
 	}
 
@@ -145,16 +145,16 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	tokenString := r.URL.Query().Get("token")
 	tokenLocation, err := token.Validate(tokenString)
 	if err != nil {
-		log.Printf("invalid token: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("invalid token: %v\n", err)
+		writeError(w, 400, "invalid token")
 		return
 	}
 
 	//create userdata
 	err = r.ParseForm()
 	if err != nil {
-		log.Printf("couldn't parse form: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("couldn't parse form: %v\n", err)
+		writeError(w, 400, "invalid form")
 		return
 	}
 	user := r.Form.Get("name")
@@ -187,16 +187,16 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 	location, _ := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
 	if location != (*journal.Location)(nil) {
 		//no Location to be logged in
-		log.Printf("user is already elsewhere: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("user is already elsewhere: %v\n", err)
+		writeError(w, 400, "already logged in")
 		return
 	}
 
 	//create entry in journal
 	err = dataJournal.WriteEventUser(&userdata, tokenLocation, journal.LOGIN)
 	if err != nil {
-		log.Printf("couldn't write into journal: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("couldn't write into journal: %v\n", err)
+		writeError(w, 500, "failed to log in")
 		return
 	}
 
@@ -209,8 +209,8 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	tokenString := r.URL.Query().Get("token")
 	tokenLocation, err := token.Validate(tokenString)
 	if err != nil {
-		log.Printf("invalid token: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("invalid token: %v\n", err)
+		writeError(w, 400, "invalid token")
 		return
 	}
 
@@ -218,8 +218,8 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 	userdataCookie, err := r.Cookie("Userdata")
 	if err != nil {
 		//no User to be logged out
-		log.Printf("failed to read user cookie: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("failed to read user cookie: %v\n", err)
+		writeError(w, 400, "invalid session")
 		return
 	}
 
@@ -227,31 +227,31 @@ func logoutHandler(w http.ResponseWriter, r *http.Request) {
 
 	if err != nil {
 		//no User to be logged out
-		log.Printf("failed to read user cookie: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("failed to read user cookie: %v\n", err)
+		writeError(w, 400, "invalid session")
 		return
 	}
 
 	//check if user is at a location
 	location, err := dataJournal.GetCurrentUserLocation(util.Base64Encode(userdata.Hash()))
 	if err != nil {
-		log.Printf("user is at no location: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("user is at no location: %v\n", err)
+		writeError(w, 400, "you're not logged in anywhere")
 		return
 	}
 
 	//check if token is valid for user location
 	if tokenLocation != location {
-		log.Printf("user is not at the token's location: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("user is not at the token's location: %v\n", err)
+		writeError(w, 400, "trying to log out from wrong location")
 		return
 	}
 
 	//log out user
 	err = dataJournal.WriteEventUser(&userdata, location, journal.LOGOUT)
 	if err != nil {
-		log.Printf("couldn't write into journal: %v \n", err)
-		redirectToHome(w, 400)
+		log.Printf("couldn't write into journal: %v\n", err)
+		writeError(w, 500, "failed to log out")
 		return
 	}
 
@@ -264,31 +264,28 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 	location := strings.ToUpper(q.Get("location"))
 
 	if location == "" {
-		log.Printf("there was no given location: %s \n", location)
-		if _, err := w.Write([]byte("no given location")); err != nil {
-			log.Printf("failed to write qrcode to Response: %v \n %v \n", err, r)
-			return
-		}
+		log.Printf("there was no given location: %s\n", location)
+		writeError(w, 400, "no given location")
 		return
 	}
 
-	if len(location) != 3 {
-		log.Printf("abbreviation has to be 3 characters, not %d \n", len(location))
-		if _, err := w.Write([]byte("couldn't resolve location-abbreviation. Need 3 characters")); err != nil {
-			log.Printf("failed to write qrcode to Response: %v \n", err)
-			return
-		}
+	_, exists := journal.Locations[location]
+	if !exists {
+		fmt.Printf("failed to resolve location: %v\n", location)
+		writeError(w, 400, "unknown location")
 		return
 	}
 
 	qrcode, err := token.GetQrCode(logIOUrl, location)
 	if err != nil {
-		log.Printf("failed to get qrcode: %v \n", err)
+		log.Printf("failed to get qrcode: %v\n", err)
+		writeError(w, 400, "failed to generate qr code")
 		return
 	}
 
 	if _, err := w.Write(qrcode); err != nil {
-		log.Printf("failed to write qrcode to Response: %v \n", err)
+		log.Printf("failed to write qrcode to Response: %v\n", err)
+		writeError(w, 400, "failed to send qr code")
 		return
 	}
 }
@@ -320,6 +317,13 @@ func executeTemplate(w http.ResponseWriter, file string, data interface{}, direc
 	if err := temp.Execute(w, data); err != nil {
 		log.Printf("failed to execute template: %v \n", err)
 		return
+	}
+}
+
+func writeError(w http.ResponseWriter, code int, message string) {
+	w.WriteHeader(code)
+	if _, err := fmt.Fprintf(w, "<h1>Error %v</h1><p>%v</p>", code, message); err != nil {
+		println("Failed to write error to client")
 	}
 }
 
