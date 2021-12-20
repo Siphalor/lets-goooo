@@ -27,7 +27,7 @@ func (rw *testResponseWriter) Write(bytes []byte) (int, error) {
 	return len(bytes), nil
 }
 
-func (rw *testResponseWriter) WriteHeader(statusCode int) {
+func (rw *testResponseWriter) WriteHeader(_ int) {
 
 }
 
@@ -101,6 +101,7 @@ func TestCreateWebserver(t *testing.T) {
 	//Turn of ssl check, to avoid self-signed certificates error
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
 
+	//CreateWebserver with no handlers -> go default handler
 	server, destroy := CreateWebserver(4443, nil)
 	go func() {
 		err := RunWebserver(server)
@@ -114,6 +115,7 @@ func TestCreateWebserver(t *testing.T) {
 	assert.Equal(t, 404, res.StatusCode)
 	destroy()
 
+	//CreateWebserver with a handler (but no template)
 	handler := map[string]http.HandlerFunc{
 		"/": testHandler,
 	}
@@ -129,10 +131,11 @@ func TestCreateWebserver(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, 200, res.StatusCode)
 
+	//CreateWebserver on a used port
 	server2, destroy2 := CreateWebserver(4444, handler)
 
 	go func() {
-		err := RunWebserver(server2)
+		err := RunWebserver(server2) // error because already running on port
 		assert.NotEqual(t, http.ErrServerClosed, err)
 	}()
 
@@ -141,12 +144,12 @@ func TestCreateWebserver(t *testing.T) {
 }
 
 func TestHandlers(t *testing.T) {
-	assert.HTTPStatusCode(t, defaultHandler, "GET", "https://localhost", nil, 200)
-	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400)
-	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 400)
-	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200)
-	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 200)
-
+	assert.HTTPStatusCode(t, homeHandler, "GET", "https://localhost", nil, 200)   //reachable
+	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", nil, 200) //reachable
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400)  //no token -> 400
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 400) //no token -> 400
+	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200)     //reachable
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 400)  //no location -> 400
 }
 
 func TestRunWebservers(t *testing.T) {

@@ -83,7 +83,6 @@ func executeTemplate(w http.ResponseWriter, file string, data interface{}, direc
 		base := GetPathToWd() + "/"
 		files = []string{base + "template/" + file, base + "template/head.html", base + "template/footer.html"}
 	}
-
 	//Create template from file
 	temp, err := template.ParseFiles(files...)
 	if err != nil {
