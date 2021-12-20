@@ -142,8 +142,8 @@ func TestCreateWebserver(t *testing.T) {
 
 func TestHandlers(t *testing.T) {
 	assert.HTTPStatusCode(t, defaultHandler, "GET", "https://localhost", nil, 200)
-	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 200)
-	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 200)
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400)
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 400)
 	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200)
 	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 200)
 

@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
-
-	//"encoding/base64"
 	"fmt"
 	"html/template"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
-	//"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
 	"log"
 	"net/http"
 	"runtime"
@@ -61,7 +58,7 @@ func RunWebservers(portLogin uint, portQr uint) error {
 	}
 	server, destroy = CreateWebserver(portLogin, handlerLogIO)
 
-	//starting webserver for LogIO
+	//starting webserver for QrCode
 	go func() {
 		if err := RunWebserver(server); err != http.ErrServerClosed {
 			log.Printf("SSL server ListenAndServe: %v", err)
