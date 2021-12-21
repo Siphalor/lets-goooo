@@ -312,6 +312,13 @@ Weiterhin kann mit `--journal-file-permissions` die entsprechende Berechtigungsm
 
 ## 1103207
 
+Ich habe folgende Teile des Projekts entwickelt.
+
+- Journal (`pkg/journal` - ohne `Location`)
+- Argp und Flag-Parsing (`pkg/argp` und das Parsing in den `main`-Funktionen)
+- Frontend-CSS und -JavaScript (`assets`)
+- Analyzer (`cmd/lets-goooo-analyzer`)
+
 ## 3106335
 
 ## 4485500
