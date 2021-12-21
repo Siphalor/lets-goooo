@@ -39,7 +39,7 @@ Dieses Modul findet sich als `argp` mit dem in @fig:uml-argp dargestellten Klass
 // TODO
 ```
 
-## Token & QrCode
+## Token & QrCode {#sec:architecture-tokens}
 
 Die Generation des Token nutzt das übergebene Kürzel des Standortes und die aktuelle Unix-Zeit, gerundet auf die Gültigkeitsdauer. 
 Dies wird mit einem Doppelpunkt zu einem String von 16 Zeichen kombiniert, welcher an die Verschlüsselungsmethode übergeben wird.
@@ -92,7 +92,7 @@ an die anderen Handler weiter:
     | otherwise            = login.html
 ```
 
-### Cookie
+### Cookie {#sec:architecture-cookies}
 
 Die Anmeldedaten eines Nutzers werden bei der ersten Anmeldung als Cookie
 im Browser abgespeichert. Hierfür werden Name und Addresse zusammengefasst
@@ -199,6 +199,40 @@ lets-goooo-analyzer view-contacts example.txt --name Tester --csv --csv-headers 
 ```
 
 ## Flags des Webservers {#sec:flags-webserver}
+
+Auch der Webserver lässt mich mittels Flags stark konfigurieren.
+Im Folgenden sind auch hierfür die wichtigsten Flags erläutert.
+
+### Ortsdaten
+
+Analog zum Analyzer in [@sec:usage-analyzer-general-locations].
+
+### Web-Server
+
+Die Ports für die Web-Server können mit `--frontend-port` bzw. `--backend-port` festgelegt werden.
+Dabei läuft der Frontend-Server standardweise auf Port 4443 und das Backend auf Port 443.
+
+Die entsprechenden TLS-Zertifikate lassen sich mit `--cert-file` und `--key-file` angeben,
+standardmäßig werden die mitgelieferten selbst ausgestellten Zertifikate verwendet (`certification`-Ordner).
+
+Um die QR-Codes generieren zu können, muss das Backend die öffentliche URL des Frontends kennen.
+Diese kann mit `--frontend-base-url` gesetzt werden und zeigt standardmäßig auf den entsprechenden `localhost`-Port.
+
+Weiterhin kann das Secret für [@sec:architecture-cookies] mit `--cookie-secret` gesetzt werden.
+Andernfalls wird ein zufälliges Secret beim Start generiert.
+
+### Tokens
+
+Die Gültigkeitsdauer der Tokens kann mit `--token-valid-time` festgelegt werden.
+Standard sind hier 120 Sekunden.
+
+Auch für die Tokens wird ein Secret benötigt (siehe [@sec:architecture-tokens]).
+Dieses kann mit `--token-secret` gesetzt werden und wird sonst zufällig bestimmt.
+
+### Journals
+
+Der Ablageort der Journal-Dateien kann mit dem Argument `--journals` festgelegt werden.
+Weiterhin kann mit `--journal-file-permissions` die entsprechende Berechtigungsmaske für Unix-Systeme gesetzt werden.
 
 # Anwenderdokumentation
 
