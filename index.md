@@ -308,31 +308,31 @@ Weiterhin kann mit `--journal-file-permissions` die entsprechende Berechtigungsm
 
 # Anwenderdokumentation
 
-Der Anwender bekommt an dem jeweiligen Standort einen zeitlich begrenzten QRCode.
+Der Anwender bekommt an dem jeweiligen Standort einen zeitlich begrenzten QRCode. ([@fig:view-qrcode])
 
-![Anwendersicht QRCode Webserver](img/QRCodeMosbach.png)
+![Anwendersicht QRCode Webserver](img/QRCodeMosbach.png){#fig:view-qrcode}
 
 Der QRCode enthält den Link zum LogIO Server. An diesen Link ist das Token als Get Parameter angehängt.
 
 Bei der ersten Anmeldung wird der Anwender auf die Login Seite weitergeleitet und muss Name und 
-Adresse eingeben. 
+Adresse eingeben. ([@fig:view-firstlogin])
 
-![Anwendersicht beim ersten Aufruf](img/FirstLogin.png)
+![Anwendersicht beim ersten Aufruf](img/FirstLogin.png){#fig:view-firstlogin}
 
 Über den Button `Let's Goooo!` findet letztendlich die Anmeldung statt. 
 
 Wenn der angemeldete Anwender erneut einen zum Standort gehörenden QRCode nutzt, 
-kommt er auf die Logout Website.
+kommt er auf die Logout Website. ([@fig:view-logout])
 
-![Anwendersicht Abmeldung](img/Logout.png)
+![Anwendersicht Abmeldung](img/Logout.png){#fig:view-logout}
 
-Bei erneutem Anmeldeversuch werden die Daten aus dem Cookie gelesen und voreingetragen.
+Bei erneutem Anmeldeversuch werden die Daten aus dem Cookie gelesen und voreingetragen. ([@fig:view-logincookie])
 
-![Anwendersicht erneute Anmeldung](img/LoginWithCookie.png)
+![Anwendersicht erneute Anmeldung](img/LoginWithCookie.png){#fig:view-logincookie}
 
-Sofern der Anwender versucht sich mit einem falschen Token anzumelden bekommt er den folgenden Fehler:
+Sofern der Anwender versucht sich mit einem falschen Token anzumelden bekommt er den folgenden Fehler. ([@fig:view-invalidtoken])
 
-![Fehlerhaftes oder ausgelaufenes Token](img/invalidToken.png)
+![Fehlerhaftes oder ausgelaufenes Token](img/invalidToken.png){#fig:view-invalidtoken}
 
 # Mitgliedsbeitragsdokumentationen
 
