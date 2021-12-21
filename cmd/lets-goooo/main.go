@@ -39,6 +39,14 @@ func main() {
 		Names: []string{"backend-port", "qr-port", "qp"},
 		Usage: "The port to use for the backend (QR) webserver",
 	}, 443)
+	certFileArg := flags.String(argp.FlagBuildArgs{
+		Names: []string{"cert-file", "cert"},
+		Usage: "The cert file to use for the HTTPS servers.",
+	}, "certification/cert.pem")
+	certKeyFileArg := flags.String(argp.FlagBuildArgs{
+		Names: []string{"cert-key-file", "key-file"},
+		Usage: "The key file to use for the HTTPS servers.",
+	}, "certification/key.pem")
 
 	tokenValidTime := flags.Int(argp.FlagBuildArgs{
 		Names: []string{"token-valid-time", "valid-time"},
@@ -82,6 +90,8 @@ func main() {
 		*cookieSecretArg = randomString(32)
 	}
 	cookieSecret = *cookieSecretArg
+	certFile = *certFileArg
+	keyFile = *certKeyFileArg
 
 	token.ValidTime = int64(*tokenValidTime)
 	if *tokenEncryptionKey == "" {

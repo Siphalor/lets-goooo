@@ -18,6 +18,8 @@ import (
 var logIOUrl = "https://localhost:4443/"
 var dataJournal = (*journal.Writer)(nil)
 var cookieSecret = ""
+var certFile = "certification/cert.pem"
+var keyFile = "certification/key.pem"
 
 // RunWebservers opening login/out and qrCode webservers at the given ports
 func RunWebservers(portLogin uint, portQr uint) error {
@@ -131,7 +133,7 @@ func CreateWebserver(port uint, handlers map[string]http.HandlerFunc) (*http.Ser
 // RunWebserver starts the given server
 func RunWebserver(server *http.Server) error {
 	_ = GetPathToWd()
-	err := server.ListenAndServeTLS("certification/cert.pem", "certification/key.pem")
+	err := server.ListenAndServeTLS(certFile, keyFile)
 	if err != http.ErrServerClosed {
 		return err
 	}
