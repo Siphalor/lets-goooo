@@ -7,6 +7,7 @@ import (
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
 	"math/rand"
 	"os"
+	"time"
 )
 
 func main() {
@@ -64,6 +65,8 @@ func main() {
 	if err != nil {
 		os.Exit(1)
 	}
+
+	rand.Seed(time.Now().UnixNano())
 
 	err = journal.ReadLocations(*locations)
 	if err != nil {
