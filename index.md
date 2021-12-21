@@ -181,7 +181,7 @@ HASH=base64(hash(DATA  \t  SECRET))
 Wenn sich ein Nutzer anmeldet, wird der Cookie, sofern vorhanden, ausgelesen
 und ins in die Anmeldung voreingegeben. Hierbei wird überprüft, dass die Daten
 mit den gehasheden Daten übereinstimmen. Das Secret welches zum hashen genutzt
-wir über ein Flag beim Start übergeben. [#flags-webserver]
+wir über ein Flag beim Start übergeben. [@sec:flags-webserver]
 
 
 # Betriebsdokumentation
