@@ -357,6 +357,7 @@ Ich habe folgende Teile des Projektes entwickelt
 
 ## 4485500
 
+
 Ich habe folgende Teile des Projektes entwickelt:
 
 - Token und QR Code (`pkg/token`)
