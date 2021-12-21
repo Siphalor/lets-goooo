@@ -103,6 +103,7 @@ func main() {
 	token.EncryptionKey = *tokenEncryptionKey
 
 	dataJournal, err = journal.NewWriter(*journalDirectory)
+	go dataJournal.TrackJournalRotation()
 	if err != nil {
 		_, _ = fmt.Fprintf(os.Stderr, "Couldn't create journal: %v", err)
 		os.Exit(1)
