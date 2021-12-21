@@ -356,3 +356,9 @@ Ich habe folgende Teile des Projektes entwickelt
 - Cookie Handling (ohne Validation)
 
 ## 4485500
+
+Ich habe folgende Teile des Projektes entwickelt:
+
+- Token und QR Code (`pkg/token`)
+- Location-Parsing (`pkg/journal/location`)
+- Cookie Validation (`cmd/lets-goooo/cookie`)
