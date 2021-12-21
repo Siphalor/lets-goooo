@@ -13,6 +13,8 @@ import (
 	"time"
 )
 
+var FileCreationPermissions = 0777
+
 // Writer is a write-only class to write to journal files.
 type Writer struct {
 	// knownUsers contains the hashes for the currently known users and their current location.
@@ -57,7 +59,7 @@ func GetCurrentJournalPath(directory string) string {
 
 // LoadFrom extracts already known users from the given journal file.
 func (writer *Writer) LoadFrom(filePath string) error {
-	file, err := os.OpenFile(filePath, os.O_RDONLY, 0777)
+	file, err := os.OpenFile(filePath, os.O_RDONLY, os.FileMode(FileCreationPermissions))
 	if err != nil {
 		return fmt.Errorf("failed to open file for reading existing data for journal writer: %w", err)
 	}
@@ -122,11 +124,11 @@ func (writer *Writer) UpdateOutput() error {
 	}
 	writer.output = nil
 	filePath := GetCurrentJournalPath(writer.directory)
-	err := os.MkdirAll(path.Dir(filePath), 0777) // TODO
+	err := os.MkdirAll(path.Dir(filePath), os.FileMode(FileCreationPermissions))
 	if err != nil {
 		return fmt.Errorf("failed to create directories for journal: %w", err)
 	}
-	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, 0777) //TODO: variable file perms
+	file, err := os.OpenFile(filePath, os.O_WRONLY|os.O_APPEND|os.O_CREATE, os.FileMode(FileCreationPermissions))
 	if err != nil {
 		return fmt.Errorf("failed to open journal file \"%s\": %w", filePath, err)
 	}

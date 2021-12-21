@@ -3,6 +3,7 @@ package token
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
 	"testing"
 	"time"
 )
@@ -59,31 +60,35 @@ func TestCreateToken(t *testing.T) {
 	assert.Equal(t, expectedToken, actual, "wrong Token created")
 }
 
-func TestCheckValidTime(t *testing.T) {
+func TestValidate(t *testing.T) {
+	journal.Locations = map[string]*journal.Location{
+		"MOS": {Code: "MOS", Name: "Mosbach"},
+	}
 
 	//Wrong token length
-	validity, err := CheckValidTime(encrypt("NotACorrectTokenLength"))
-	assert.False(t, validity, "false Token was said to be correct")
+	location, err := Validate(encrypt("NotACorrectTokenLength"))
 	assert.Error(t, err, "false length of token did not create an error during decryption")
 
 	//text in place of timestamp
-	validity, err = CheckValidTime(encrypt("CorrectLengh:123"))
-	assert.False(t, validity, "false Token was said to be correct")
+	location, err = Validate(encrypt("CorrectLengh:123"))
 	assert.Error(t, err, "no fail with string in token")
 
 	//No ":" for splitting
-	validity, err = CheckValidTime(encrypt("1234567891012MOS"))
-	assert.False(t, validity, "false Token was said to be correct")
+	location, err = Validate(encrypt("1234567891012MOS"))
 	assert.Error(t, err, "no fail without : for splitting")
 
 	//Outdated token
-	validity, err = CheckValidTime(encrypt("000000000001:MOS"))
-	assert.False(t, validity)
-	assert.NoError(t, err)
+	location, err = Validate(encrypt("000000000001:MOS"))
+	assert.Error(t, err)
+
+	//Unknown location
+	incorrectToken, _ := CreateToken("ZZZ")
+	location, err = Validate(incorrectToken)
+	assert.Error(t, err)
 
 	correctToken, _ := CreateToken("MOS")
-	validity, err = CheckValidTime(correctToken)
-	assert.True(t, validity, "was not true for correct token")
+	location, err = Validate(correctToken)
+	assert.Equal(t, journal.Locations["MOS"], location, "incorrect location from token")
 	assert.NoError(t, err)
 }
 

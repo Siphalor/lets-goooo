@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"html/template"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
 	"log"
 	"net/http"
 	"runtime"
@@ -13,15 +13,14 @@ import (
 	"time"
 )
 
+//setting default values for global variables
+//values get overwritten in main class by flags
 var logIOUrl = "https://localhost:4443/"
-
-type QrCodeUrl struct {
-	PngUrl   string
-	Location string
-}
+var dataJournal = (*journal.Writer)(nil)
+var cookieSecret = ""
 
 // RunWebservers opening login/out and qrCode webservers at the given ports
-func RunWebservers(portLogin int, portQr int) error {
+func RunWebservers(portLogin uint, portQr uint) error {
 	if portLogin == portQr {
 		return fmt.Errorf("can't use the same port for two webservers")
 	}
@@ -32,7 +31,7 @@ func RunWebservers(portLogin int, portQr int) error {
 
 	//creating webserver for QrCode
 	handlerQR := map[string]http.HandlerFunc{
-		"/":       defaultHandler,
+		"/":       homeHandler,
 		"/qr":     qrHandler,
 		"/qr.png": qrPngHandler,
 	}
@@ -51,13 +50,13 @@ func RunWebservers(portLogin int, portQr int) error {
 
 	//creating webserver for LogIO
 	handlerLogIO := map[string]http.HandlerFunc{
-		"/":       defaultHandler,
+		"/":       cookieHandler,
 		"/login":  loginHandler,
 		"/logout": logoutHandler,
 	}
 	server, destroy = CreateWebserver(portLogin, handlerLogIO)
 
-	//starting webserver for LogIO
+	//starting webserver for QrCode
 	go func() {
 		if err := RunWebserver(server); err != http.ErrServerClosed {
 			log.Printf("SSL server ListenAndServe: %v", err)
@@ -72,78 +71,43 @@ func RunWebservers(portLogin int, portQr int) error {
 	return nil
 }
 
-func defaultHandler(w http.ResponseWriter, _ *http.Request) {
+// homeHandler creates a default response
+func homeHandler(w http.ResponseWriter, _ *http.Request) {
 	executeTemplate(w, "default.html", nil, false)
 }
 
-func loginHandler(w http.ResponseWriter, _ *http.Request) {
-	executeTemplate(w, "default.html", nil, false) //TODO
-}
-
-func logoutHandler(w http.ResponseWriter, _ *http.Request) {
-	executeTemplate(w, "default.html", nil, false) //TODO
-}
-
-func qrPngHandler(w http.ResponseWriter, r *http.Request) {
-	q := r.URL.Query()
-	location := strings.ToUpper(q.Get("location"))
-
-	if location == "" {
-		log.Printf("there was no given location: %s \n", location)
-		if _, err := w.Write([]byte("no given location")); err != nil {
-			log.Printf("failed to write qrcode to Response: %v \n %v \n", err, r)
-			return
-		}
-		return
-	}
-
-	if len(location) != 3 {
-		log.Printf("abbreviation has to be 3 characters, not %d \n", len(location))
-		if _, err := w.Write([]byte("couldn't resolve location-abbreviation. Need 3 characters")); err != nil {
-			log.Printf("failed to write qrcode to Response: %v \n", err)
-			return
-		}
-		return
-	}
-
-	qrcode, err := token.GetQrCode(logIOUrl, location)
-	if err != nil {
-		log.Printf("failed to get qrcode: %v \n", err)
-		return
-	}
-
-	if _, err := w.Write(qrcode); err != nil {
-		log.Printf("failed to write qrcode to Response: %v \n", err)
-		return
-	}
-}
-
-func qrHandler(w http.ResponseWriter, r *http.Request) {
-	data := QrCodeUrl{fmt.Sprintf("%s.png", r.URL.Path), r.URL.Query().Get("location")}
-	executeTemplate(w, "qr.html", data, false)
-}
-
 // executeTemplate creates a Template from a given file and writes the text filled with data into the http.Response
-func executeTemplate(w http.ResponseWriter, file string, data interface{}, testData bool) {
-	if !testData {
-		file = GetFilePath() + "template/" + file
+func executeTemplate(w http.ResponseWriter, file string, data interface{}, directFilePath bool) {
+	files := []string{file}
+	if !directFilePath {
+		base := GetPathToWd() + "/"
+		files = []string{base + "template/" + file, base + "template/head.html", base + "template/footer.html"}
 	}
-	temp, err := template.ParseFiles(file)
+	//Create template from file
+	temp, err := template.ParseFiles(files...)
 	if err != nil {
 		log.Printf("failed to parse template: %v \n", err)
 		return
 	}
 
+	//Execute template with given data
 	if err := temp.Execute(w, data); err != nil {
 		log.Printf("failed to execute template: %v \n", err)
 		return
 	}
 }
 
+func writeError(w http.ResponseWriter, code int, message string) {
+	w.WriteHeader(code)
+	if _, err := fmt.Fprintf(w, "<h1>Error %v</h1><p>%v</p>", code, message); err != nil {
+		println("Failed to write error to client")
+	}
+}
+
 /*	CreateWebserver creates a webserver at the given port
  *	the handlers of the webserver are given by the handler map
  */
-func CreateWebserver(port int, handlers map[string]http.HandlerFunc) (*http.Server, func()) {
+func CreateWebserver(port uint, handlers map[string]http.HandlerFunc) (*http.Server, func()) {
 	mux := http.NewServeMux()
 	mux.Handle("/assets/", http.StripPrefix("/assets/", http.FileServer(http.Dir("assets"))))
 
@@ -164,8 +128,9 @@ func CreateWebserver(port int, handlers map[string]http.HandlerFunc) (*http.Serv
 	return &server, destroy
 }
 
+// RunWebserver starts the given server
 func RunWebserver(server *http.Server) error {
-	_ = GetFilePath()
+	_ = GetPathToWd()
 	err := server.ListenAndServeTLS("certification/cert.pem", "certification/key.pem")
 	if err != http.ErrServerClosed {
 		return err
@@ -173,7 +138,8 @@ func RunWebserver(server *http.Server) error {
 	return nil
 }
 
-func GetFilePath() string {
+// GetPathToWd returns the path to the Working directory
+func GetPathToWd() string {
 	_, filename, _, _ := runtime.Caller(0)
 	index := strings.LastIndex(filename, "cmd")
 	if index == -1 {
@@ -181,4 +147,9 @@ func GetFilePath() string {
 	} else {
 		return filename[0:index]
 	}
+}
+
+func redirectToHome(w http.ResponseWriter, statusCode int) {
+	w.Header().Add("Location", logIOUrl)
+	w.WriteHeader(statusCode)
 }

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html lang="en">
+	{{ template "head.html" (printf "Logout of %s" (html .Location.Name)) }}
+	<body>
+		<main>
+			<img src="../assets/logoooo.svg" alt="Logo" class="logo" />
+			<h1>Logout of {{ html .Location.Name }}</h1>
+			<form action="/logout?token={{ urlquery .Token }}" method="post">
+				<button type="submit" class="primary big">Yeet yourself out of here</button>
+			</form>
+		</main>
+		{{ template "footer.html" . }}
+	</body>
+</html>

@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+	{{ template "head.html" (printf "Login to %s" (html .Location.Name)) }}
+	<body>
+		<main>
+			<img src="../assets/logoooo.svg" alt="Logo" class="logo" />
+			<h1>Login to {{ html .Location.Name }}</h1>
+			<form action="/login?token={{ urlquery .Token }}" method="post">
+				<label for="name">Name</label>
+				<input id="name" name="name" placeholder="Vor- und Nachname" required="required" value="{{ with .User }}{{ js .Name }}{{ end }}" />
+				<label for="address">Address</label>
+				<input id="address" name="address" placeholder="Adresse" required="required" value="{{ with .User }}{{ js .Address }}{{ end }}" />
+				<button type="submit" class="primary big">Let's Goooo!</button>
+			</form>
+		</main>
+		{{ template "footer.html" . }}
+	</body>
+</html>
