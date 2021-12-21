@@ -137,6 +137,8 @@ Den Server ist mit RunWebserver(server) als https Server zu starten.
 RunWebservers baut den QRCodeWebserver und den LogIOServer auf. Hierfür sind 
 zwei verschiedene Ports zu übergeben.
 
+Damit die Tests für den Webserver korrekt laufen muss die Umgebeungsvariable `webitesti` auf `true` gesetzt werden.
+
 ### Handling
 
 #### QRCode Server
