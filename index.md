@@ -202,6 +202,32 @@ lets-goooo-analyzer view-contacts example.txt --name Tester --csv --csv-headers 
 
 # Anwenderdokumentation
 
+Der Anwender bekommt an dem jeweiligen Standort einen zeitlich begrenzten QRCode.
+
+![Anwendersicht QRCode Webserver](img/QRCodeMosbach.png)
+
+Der QRCode enthält den Link zum LogIO Server. An diesen Link ist das Token als Get Parameter angehängt.
+
+Bei der ersten Anmeldung wird der Anwender auf die Login Seite weitergeleitet und muss Name und 
+Adresse eingeben. 
+
+![Anwendersicht beim ersten Aufruf](img/FirstLogin.png)
+
+Über den Button `Let's Goooo!` findet letztendlich die Anmeldung statt. 
+
+Wenn der angemeldete Anwender erneut einen zum Standort gehörenden QRCode nutzt, 
+kommt er auf die Logout Website.
+
+![Anwendersicht Abmeldung](img/Logout.png)
+
+Bei erneutem Anmeldeversuch werden die Daten aus dem Cookie gelesen und voreingetragen.
+
+![Anwendersicht erneute Anmeldung](img/LoginWithCookie.png)
+
+Sofern der Anwender versucht sich mit einem falschen Token anzumelden bekommt er den folgenden Fehler:
+
+![Fehlerhaftes oder ausgelaufenes Token](img/invalidToken.png)
+
 # Mitgliedsbeitragsdokumentationen
 
 ## 1103207
