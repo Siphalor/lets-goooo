@@ -18,7 +18,7 @@ func CreateToken(location string) (string, error) {
 	if len(location) != 3 {
 		return "", fmt.Errorf("Token creation failed, because location had wrong length: %v", len(location))
 	}
-	unencryptedToken := fmt.Sprintf("%12v:%s", int64(time.Now().Unix())/int64(ValidTime)*int64(ValidTime), location)
+	unencryptedToken := fmt.Sprintf("%12v:%s", time.Now().Unix()/ValidTime*ValidTime, location)
 
 	return EncryptAES([]byte(EncryptionKey), unencryptedToken)
 }
