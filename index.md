@@ -20,6 +20,59 @@ In @fig:uml-all ist ein Klassendiagramm für das gesamte Projekt zu sehen.
 
 ![UML-Klassendiagramm des `journal`-Packages](img/plantuml/pkg_journal.png)
 
+Das Journal-Paket ist in zwei wichtige Klassen geteilt: den `journal.Writer` und den `journal.Reader`.
+
+Ersterer wird vom Server verwendet um die Logins und Logouts zu protokollieren.
+Der `Reader` wird hauptsächlich im Analyzer eingesetzt, um die Journal-Dateien einheitlich einzulesen.
+
+### Dateiformat
+
+Die Journal-Dateien werden in einem eigenen Text-Datei-Format gespeichert.
+
+Jede Zeile beginnt dabei mit einem Symbol, dass den Typ dieser Zeile markiert:
+
+- `*`: Ein neuer Nutzer tritt erstmals in der Journaldatei auf. In dieser Zeile werden Name und Adresse durch einen Tab getrennt gespeichert.
+- `+`: Ein Nutzer meldet sich an einem Standort an. Gespeichert wird der Nutzer, der Standort und ein Unix-Timestamp des Ereignisses.
+- `-`: Ein Nutzer meldet sich an einem Standort ab. Analog zur `+`-Zeile.
+
+Nur in `*`-Zeilen werden die Nutzerdaten direkt gespeichert.
+Um Speicherplatz zu sparen wird in folgenden Zeilen der Nutzer nur noch über einen Hashwert seines Namens und seiner Adresse referenziert.+
+
+### Beispiel-Datei
+```
+*Tester	Teststadt
++HjLV+aPwKzq3szuae53Zv5n4puw=	TST	1634700000
+*Klaus	Musterdorf
++O+Dig24BxOFwjJEN1oBbk/VW/tA=	HST	1634710000
+-HjLV+aPwKzq3szuae53Zv5n4puw=	TST	1634711000
+-O+Dig24BxOFwjJEN1oBbk/VW/tA=	HST	1634712000
+```
+
+In diesem Beispiel meldet sich zunächst der Nutzer `Tester` am Standort `TST` an und wird im folgenden nur noch durch den Hash `HjLV...` referenziert.
+In der Praxis wäre die erste Zeile aufgrund längerer Namen und einer vollständigen Adresseingabe deutlich länger.
+
+Anschließend meldet sich der Nutzer `Klaus` am Standort `HST` an.
+Darauf melden sich beide Nutzer nacheinander wieder ab.
+
+### Writer
+
+Der Writer enthält in sich alle bereits in das aktuelle Journal geschriebene Nutzer.
+Wenn ein unbekannter Nutzer gemeldet wird, so muss eine `*`-Zeile erzeugt werden.
+Weiterhin kennt der Writer den Ausgabeordner und einen offenen Ausgabe-Stream.
+Zusätzlich enthält der Writer ein Mutex, um diesen Ausgabe-Stream Thread-sicher zu machen.
+
+Wenn ein neuer Writer erstellt wird, wird zunächst geprüft, ob bereits eine Journal-Datei existiert.
+Wenn dies der Fall ist, wird die entsprechende Datei eingelesen damit die bereits bekannten Nutzer geladen werden.
+
+Anschließend wird der Ausgabe-Stream auf die Datei gesetzt.
+
+Mit den Methoden `WriteEventUser` bzw. `WriteEventUserHash` können neue Ereignisse geschrieben werden.
+Dabei existiert die zweite Methode, um einen vereinfachten Zugriff aus dem Programm heraus zuzulassen,
+falls nur der Hash des Nutzers bekannt ist.
+
+Weiterhin sollte die Methode `TrackJournalRotation` in einer Subroutine ausgeführt werden.
+Diese Methode sorgt dafür, dass aller 24 Stunden auch bei laufendem Server eine neue Datei angelegt wird.
+
 ## Argp
 
 Für das Einlesen der Argumente im Analyzer wurde zunächst versucht das Go-Standard-Modul `flag` einzusetzen.
