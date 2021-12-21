@@ -347,4 +347,10 @@ Ich habe folgende Teile des Projekts entwickelt.
 
 ## 3106335
 
+Ich habe folgende Teile des Projektes entwickelt
+
+- Webserver Aufbau (`cmd/lets-goooo/webserver`)
+- Request Handling (`cmd/lets-goooo/Handler`)
+- Cookie Handling (ohne Validation)
+
 ## 4485500
