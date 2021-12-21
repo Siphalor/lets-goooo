@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -144,12 +145,21 @@ func TestCreateWebserver(t *testing.T) {
 }
 
 func TestHandlers(t *testing.T) {
-	assert.HTTPStatusCode(t, homeHandler, "GET", "https://localhost", nil, 200)   //reachable
+	assert.HTTPStatusCode(t, homeHandler, "GET", "https://localhost", nil, 200) //reachable
+
+	//cookieHandler
 	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", nil, 200) //reachable
-	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400)  //no token -> 400
+	values := url.Values{}
+	values.Set("token", "12345")
+	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", values, 400) // redirecting with wrong token
+
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400) //no token -> 400
+
 	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 400) //no token -> 400
-	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200)     //reachable
-	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 400)  //no location -> 400
+
+	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200) //reachable
+
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 400) //no location -> 400
 }
 
 func TestRunWebservers(t *testing.T) {
@@ -158,6 +168,11 @@ func TestRunWebservers(t *testing.T) {
 	}
 	//Turn of ssl check, to avoid self-signed certificates error
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+
+	go func() {
+		err := RunWebservers(442, 442)
+		assert.Error(t, err)
+	}()
 
 	go func() {
 		err := RunWebservers(443, 4443)
