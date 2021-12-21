@@ -88,9 +88,28 @@ Dieses Modul findet sich als `argp` mit dem in @fig:uml-argp dargestellten Klass
 
 ![UML-Klassendiagramm des `argp`-Packages](img/plantuml/pkg_argp.png){#fig:uml-argp}
 
-```java
-// TODO
-```
+Von der Grundidee folgt das Modul dem `flag`-Modul.
+Verschiedene Flags werden über die Methoden für den jeweiligen Typ (z.B. `Bool` oder `Int`) zu einem `FlagSet` hinzugefügt.
+Über die `FlagBuildArgs` kann die jeweilige Flag konfiguriert werden.
+Dabei können verschiedene Namen angegeben werden, mit denen die Flag nutzbar sein soll.
+Beide Schreibweisen mit `--` bzw. `-` sind beim Einlesen der Argumente erlaubt.
+Zusätzlich kann ein Hilfstext angegeben werden und optional ein Text der als Standardwert in der Hilfe angezeigt wird.
+Letzteres ist nützlich für Flags, deren Standardwert erst dynamisch bestimmt wird.
+
+Als Rückgabewert wird von den Methoden ein Pointer zurückgegeben,
+an dessen Speicheradresse beim erfolgreichen Parsen der finale Wert gespeichert wird.
+
+Zusätzlich dazu können für jedes `FlagSet` noch positional Parameter definiert werden.
+Diese werden analog zu den normalen Parametern mit den `Positional...`-Methoden definiert.
+
+Weiterhin kann eine `SubcommandGroup` verwendet werden die verschiedene `Subcommand`s (`Subcommand` embedded `FlagSet`) gruppieren.
+So ist es möglich eine Anwendung mit verschiedenen Unterbefehlen zu definieren.
+
+Das Parsing kann abschließend durch einen Aufruf von `flagSet.ParseFlags(os.Args[1:])`,
+beziehungsweise `subcommandGroup.ParseSubcommand(os.Args[1:])`, durchgeführt werden.
+Im Fall der Subcommands wird zusätzlich zu einem möglichen Fehler noch der vom Nutzer verwendete `Subcommand` zurückgegeben.
+
+Hilfetexte für alle Programme und Unterbefehle sind mittels der Flag `--help` anzeigbar.
 
 ## Token & QrCode {#sec:architecture-tokens}
 
