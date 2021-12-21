@@ -55,18 +55,51 @@ Dieser wird zurück gegeben als Byte Array.
 
 ### Aufbau
 
+Um ein Webserver zu erstellen muss die Methode CreateWebserver aufgerufen werden.
+Diese übernimmt als Parameter den `Port` als `uint` und ein `map` mit `Handlern`.
+Die Rückgabewerte sind der startbereite `Server` und eine `destroy() Funktion` mit der
+man den Server schließen kann.
+
+Den Server ist mit RunWebserver(server) als https Server zu starten. 
+
+RunWebservers baut den QRCodeWebserver und den LogIOServer auf. Hierfür sind 
+zwei verschiedene Ports zu übergeben.
+
 ### Handling
 
-#### Request
+#### QRCode Server
 
-#### Cookie
+Der QrCode Server benutzt 3 Handler, wobei der `homeHandler` eine default Website erzeugt.
+Im Weiteren gibt es den `qrPngHandler`, welcher für einen über den Get-Parameter location
+übergebenen Ort ein temporären QRCode erzeugt. Diesen schreibt er in den ResponseWriter.
+Der `qrPngHandler` wird vom `qrHandler` genutzt um den QRCode in das Template für die
+QRCode Ausgabe einzubinden.
+
+#### Login/Logout Server
+
+Der LogIO Server besitzt auch 3 Handler. Hierbei finden im `loginHandler` das Login und 
+`logoutHandler` das Logout statt. Dabei werden Token und Cookie auf Gekültigkeit überprüft,
+bevor man sich an-/abmelden kann.
+
+Der `cookieHandler` liest den Cookie des Nutzers aus (sofern vorhanden) und leitet wiefolgt 
+an die anderen Handler weiter:
+
+```
+/ -> home
+/?token=1234
+    | cookie -> logged out = login.html login_data
+    | cookie -> logged in  = logout.html
+    | otherwise            = login.html
+```
+
+### Cookie
 
 Die Anmeldedaten eines Nutzers werden bei der ersten Anmeldung als Cookie
 im Browser abgespeichert. Hierfür werden Name und Addresse zusammengefasst
-und `;` getrennt erneut mit einem Secret gehashed abgespeichert
+und `:` getrennt erneut mit einem Secret gehashed abgespeichert
 
 ```
-COOKIE=DATA;HASH
+COOKIE=DATA:HASH
 DATA=base64(NAME  \t  ADDRESS)
 HASH=base64(hash(DATA  \t  SECRET))
 ```
@@ -77,7 +110,7 @@ mit den gehasheden Daten übereinstimmen. Das Secret welches zum hashen genutzt
 wir über ein Flag beim Start übergeben. [#flags-webserver]
 
 
-# Anwenderdokumentation
+# Betriebsdokumentation
 
 ## Konfiguration der Orte {#sec:usage-locations}
 
@@ -167,7 +200,7 @@ lets-goooo-analyzer view-contacts example.txt --name Tester --csv --csv-headers 
 
 ## Flags des Webservers {#sec:flags-webserver}
 
-# Betriebsdokumentation
+# Anwenderdokumentation
 
 # Mitgliedsbeitragsdokumentationen
 
