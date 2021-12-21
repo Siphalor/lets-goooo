@@ -9,7 +9,14 @@ import (
 
 func Validate(string2 string) (journal.User, error) {
 
+	user := journal.User{
+		Name:    "",
+		Address: "",
+	}
 	userData := strings.Split(string2, ":")
+	if len(userData) < 2 {
+		return user, fmt.Errorf("cookie did not contain separator ':'")
+	}
 
 	if util.Base64Encode(util.HashString(userData[0]+"\t"+cookieSecret)) == userData[1] {
 		userData0, _ := util.Base64Decode(userData[0])
@@ -22,8 +29,5 @@ func Validate(string2 string) (journal.User, error) {
 		return user, nil
 	}
 
-	return journal.User{
-		Name:    "",
-		Address: "",
-	}, fmt.Errorf("user Data in Cookie did not match the hash")
+	return user, fmt.Errorf("user Data in Cookie did not match the hash")
 }
