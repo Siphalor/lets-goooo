@@ -51,6 +51,32 @@ Diese wird unteranderem von der Funktion Validate genutzt, um einen Token auf se
 GetQrCode lässt zunächst einen Token erstellen und erstellt einen QrCode für den String aus der Startparameter URL und dem Token.
 Dieser wird zurück gegeben als Byte Array.
 
+## Webserver
+
+### Aufbau
+
+### Handling
+
+#### Request
+
+#### Cookie
+
+Die Anmeldedaten eines Nutzers werden bei der ersten Anmeldung als Cookie
+im Browser abgespeichert. Hierfür werden Name und Addresse zusammengefasst
+und `;` getrennt erneut mit einem Secret gehashed abgespeichert
+
+```
+COOKIE=DATA;HASH
+DATA=base64(NAME  \t  ADDRESS)
+HASH=base64(hash(DATA  \t  SECRET))
+```
+
+Wenn sich ein Nutzer anmeldet, wird der Cookie, sofern vorhanden, ausgelesen
+und ins in die Anmeldung voreingegeben. Hierbei wird überprüft, dass die Daten
+mit den gehasheden Daten übereinstimmen. Das Secret welches zum hashen genutzt
+wir über ein Flag beim Start übergeben. [#flags-webserver]
+
+
 # Anwenderdokumentation
 
 ## Konfiguration der Orte {#sec:usage-locations}
@@ -138,6 +164,8 @@ Beispiel-Befehl zum CSV-Export einer Kontaktliste für die Person `Tester` aus d
 ```sh
 lets-goooo-analyzer view-contacts example.txt --name Tester --csv --csv-headers -o tester-contacts.csv
 ```
+
+## Flags des Webservers {#sec:flags-webserver}
 
 # Betriebsdokumentation
 
