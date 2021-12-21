@@ -16,3 +16,10 @@
 
 # Jetbrains
 .idea/
+
+# Other artifacts
+journals/
+tmp/
+*.zip
+*.csv
+*.pdf
