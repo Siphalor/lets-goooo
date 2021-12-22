@@ -113,6 +113,19 @@ func (writer *Writer) GetCurrentUserLocation(hash string) (*Location, error) {
 	return loc, nil
 }
 
+// Close closes the file handle to the journal file.
+func (writer *Writer) Close() error {
+	writer.outputLock.Lock()
+	defer writer.outputLock.Unlock()
+	if closer, ok := writer.output.(io.Closer); ok {
+		err := closer.Close()
+		if err != nil {
+			return fmt.Errorf("failed to close journal file: %w", err)
+		}
+	}
+	return nil
+}
+
 // UpdateOutput updates the output journal file to the current date.
 func (writer *Writer) UpdateOutput() error {
 	writer.outputLock.Lock()
