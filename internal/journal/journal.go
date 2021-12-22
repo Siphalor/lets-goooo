@@ -2,7 +2,7 @@ package journal
 
 import (
 	"fmt"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/util"
 	"strconv"
 	"strings"
 )

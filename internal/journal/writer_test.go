@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"io"
 	"io/ioutil"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/util"
 	"log"
 	"os"
 	"path"

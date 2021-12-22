@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/journal"
 	"testing"
 )
 

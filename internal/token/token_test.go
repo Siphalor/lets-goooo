@@ -3,7 +3,7 @@ package token
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/journal"
 	"testing"
 	"time"
 )

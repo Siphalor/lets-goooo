@@ -2,9 +2,9 @@ package main
 
 import (
 	"fmt"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/argp"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/argp"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/token"
 	"math/rand"
 	"os"
 	"time"

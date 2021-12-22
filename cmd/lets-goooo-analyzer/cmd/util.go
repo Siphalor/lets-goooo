@@ -3,8 +3,8 @@ package cmd
 import (
 	"fmt"
 	"io"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/util"
 	"os"
 	"strings"
 )

@@ -2,7 +2,7 @@ package main
 
 import (
 	"lehre.mosbach.dhbw.de/lets-goooo/v2/cmd/lets-goooo-analyzer/cmd"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/argp"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/argp"
 	"os"
 )
 

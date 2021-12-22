@@ -4,7 +4,7 @@ import (
 	"crypto/aes"
 	"encoding/hex"
 	"fmt"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/journal"
 	"strconv"
 	"strings"
 	"time"

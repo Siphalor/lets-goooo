@@ -3,7 +3,7 @@ package journal
 import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/util"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/util"
 	"testing"
 )
 
