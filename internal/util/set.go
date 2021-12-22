@@ -1,3 +1,7 @@
+// Part of the Let's Goooo project
+// Copyright 2021; matriculation numbers: 1103207, 3106445, 4485500
+// Let's goooo get this over together
+
 package util
 
 // Set based on https://yourbasic.org/golang/implement-set/
