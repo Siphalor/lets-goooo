@@ -359,6 +359,6 @@ Ich habe folgende Teile des Projektes entwickelt
 
 Ich habe folgende Teile des Projektes entwickelt:
 
-- Token und QR Code (`pkg/token`)
-- Location-Parsing (`pkg/journal/location`)
+- Token und QR Code (`internal/token`)
+- Location-Parsing (`internal/journal/location`)
 - Cookie Validation (`cmd/lets-goooo/cookie`)
