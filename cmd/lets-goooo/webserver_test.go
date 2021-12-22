@@ -155,6 +155,8 @@ func TestHandlers(t *testing.T) {
 	tempDir := t.TempDir()
 	dataJournal, err = journal.NewWriter(tempDir)
 	defer func() {
+		err := dataJournal.Close()
+		assert.NoError(t, err)
 	}()
 	journal.FileCreationPermissions = 0777
 	//go dataJournal.TrackJournalRotation()
@@ -179,6 +181,7 @@ func TestHandlers(t *testing.T) {
 	//cookieHandler
 	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", nil, 200)        //reachable
 	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", invalToken, 400) // redirecting with wrong token
+	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", validToken, 200) // redirecting with wrong token
 
 	//loginHandler
 	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400)        //no token -> 400
@@ -202,7 +205,6 @@ func TestHandlers(t *testing.T) {
 	token.EncryptionKey = "thisisno32bitlongpassphrase"
 	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", validLocat, 400) // cant generate QRCode -> 400
 	token.EncryptionKey = "thisis32bitlongpassphraseimusing"
-
 }
 
 func TestRunWebservers(t *testing.T) {
