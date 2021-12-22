@@ -18,7 +18,7 @@ In @fig:uml-all ist ein Klassendiagramm für das gesamte Projekt zu sehen.
 
 ## Journal
 
-![UML-Klassendiagramm des `journal`-Packages](img/plantuml/pkg_journal.png)
+![UML-Klassendiagramm des `journal`-Packages](img/plantuml/internal_journal.png)
 
 Das Journal-Paket ist in zwei wichtige Klassen geteilt: den `journal.Writer` und den `journal.Reader`.
 
@@ -86,7 +86,7 @@ xyz Testdatei.txt --flag
 Ebenso stellte sich die Arbeit mit Subcommands als sehr unschön heraus und so entstand der Gedanke ein entsprechendes eigenes Package zu schreiben.
 Dieses Modul findet sich als `argp` mit dem in @fig:uml-argp dargestellten Klassenaufbau.
 
-![UML-Klassendiagramm des `argp`-Packages](img/plantuml/pkg_argp.png){#fig:uml-argp}
+![UML-Klassendiagramm des `argp`-Packages](img/plantuml/internal_argp.png){#fig:uml-argp}
 
 Von der Grundidee folgt das Modul dem `flag`-Modul.
 Verschiedene Flags werden über die Methoden für den jeweiligen Typ (z.B. `Bool` oder `Int`) zu einem `FlagSet` hinzugefügt.
@@ -342,8 +342,8 @@ Sofern der Anwender versucht sich mit einem falschen Token anzumelden bekommt er
 
 Ich habe folgende Teile des Projekts entwickelt.
 
-- Journal (`pkg/journal` - ohne `Location`)
-- Argp und Flag-Parsing (`pkg/argp` und das Parsing in den `main`-Funktionen)
+- Journal (`internal/journal` - ohne `Location`)
+- Argp und Flag-Parsing (`internal/argp` und das Parsing in den `main`-Funktionen)
 - Frontend-CSS und -JavaScript (`assets`)
 - Analyzer (`cmd/lets-goooo-analyzer`)
 

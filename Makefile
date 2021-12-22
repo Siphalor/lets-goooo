@@ -3,7 +3,7 @@ package: lets-goooo.zip
 
 lets-goooo.zip: doc.pdf
 	rm -f lets-goooo.zip
-	zip lets-goooo.zip src/assets src/certification src/cmd src/pkg src/template src/go.mod src/go.sum src/locations.xml src/logoooo.png doc.pdf
+	zip lets-goooo.zip src/assets src/certification src/cmd src/internal src/template src/go.mod src/go.sum src/locations.xml src/logoooo.png doc.pdf
 
 .PHONY: doc.pdf
 doc.pdf:
