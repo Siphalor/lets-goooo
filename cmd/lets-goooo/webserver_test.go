@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/token"
 	"log"
 	"net/http"
 	"net/url"
@@ -145,21 +147,62 @@ func TestCreateWebserver(t *testing.T) {
 }
 
 func TestHandlers(t *testing.T) {
+	cookieSecret = "thisis32bitlongpassphrasetooyay"
+	token.ValidTime = 120
+	token.EncryptionKey = "thisis32bitlongpassphraseimusing"
+	err := journal.ReadLocations("locations.xml")
+	assert.NoError(t, err)
+	tempDir := t.TempDir()
+	dataJournal, err = journal.NewWriter(tempDir)
+	defer func() {
+	}()
+	journal.FileCreationPermissions = 0777
+	//go dataJournal.TrackJournalRotation()
+
+	//different get parameters
+	invalToken := url.Values{}
+	invalToken.Set("token", "12345")
+
+	validToken := url.Values{}
+	toke, err := token.CreateToken("MOS")
+	assert.NoError(t, err)
+	validToken.Set("token", toke)
+
+	invalLocat := url.Values{}
+	invalLocat.Set("location", "this location does not exist")
+
+	validLocat := url.Values{}
+	validLocat.Set("location", "MOS")
+
 	assert.HTTPStatusCode(t, homeHandler, "GET", "https://localhost", nil, 200) //reachable
 
 	//cookieHandler
-	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", nil, 200) //reachable
-	values := url.Values{}
-	values.Set("token", "12345")
-	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", values, 400) // redirecting with wrong token
+	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", nil, 200)        //reachable
+	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", invalToken, 400) // redirecting with wrong token
 
-	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400) //no token -> 400
+	//loginHandler
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400)        //no token -> 400
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", invalToken, 400) //wrong token -> 400
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", validToken, 302) //correct token + not logged in -> log in + redirect to home
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", validToken, 400) //correct token + already logged in -> already at location -> cant log in -> 400
 
-	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 400) //no token -> 400
+	//logoutHandler
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 400)        //no token -> 400
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", invalToken, 400) //wrong token -> 400
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", validToken, 400) //correct token + no cookie -> 400
 
+	//qrHandler
 	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200) //reachable
 
-	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 400) //no location -> 400
+	//qrPngHandler
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 400)        //no location -> 400
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", invalLocat, 400) //no existing location -> 400
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", validLocat, 200) // existing location -> 200
+	//breaking token generation
+	token.EncryptionKey = "thisisno32bitlongpassphrase"
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", validLocat, 400) // cant generate QRCode -> 400
+	token.EncryptionKey = "thisis32bitlongpassphraseimusing"
+
 }
 
 func TestRunWebservers(t *testing.T) {

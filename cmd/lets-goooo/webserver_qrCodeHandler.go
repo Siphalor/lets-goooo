@@ -36,7 +36,7 @@ func qrPngHandler(w http.ResponseWriter, r *http.Request) {
 
 	if _, err := w.Write(qrcode); err != nil {
 		log.Printf("failed to write qrcode to Response: %v\n", err)
-		writeError(w, 400, "failed to send qr code")
+		w.WriteHeader(400)
 		return
 	}
 }
