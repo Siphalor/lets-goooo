@@ -85,22 +85,18 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 		Address: address,
 	}
 
-	//search for Cookie holding Userdata
-	userdataCookie, err := r.Cookie("Userdata")
-	if userdataCookie != nil {
-		userdata, err = Validate(userdataCookie.Value)
+	data := util.Base64Encode(([]byte)(userdata.ToJournalLine()))
+	hash := util.Base64Encode(util.HashString(data + "\t" + cookieSecret))
+
+	//create cookie
+	userdataCookie := &http.Cookie{
+		Name:  "Userdata",
+		Value: data + ":" + hash,
 	}
 
-	if err != nil {
-
-		data := util.Base64Encode(([]byte)(userdata.ToJournalLine()))
-		hash := util.Base64Encode(util.HashString(data + "\t" + cookieSecret))
-
-		//create cookie
-		userdataCookie := &http.Cookie{
-			Name:  "Userdata",
-			Value: data + ":" + hash,
-		}
+	//search for Cookie holding Userdata
+	oldCookie, _ := r.Cookie("Userdata")
+	if oldCookie == nil || (oldCookie.Value == userdataCookie.Value) {
 		http.SetCookie(w, userdataCookie)
 	}
 
