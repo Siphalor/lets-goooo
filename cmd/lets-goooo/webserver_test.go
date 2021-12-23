@@ -159,7 +159,6 @@ func TestHandlers(t *testing.T) {
 		assert.NoError(t, err)
 	}()
 	journal.FileCreationPermissions = 0777
-	//go dataJournal.TrackJournalRotation()
 
 	//different get parameters
 	invalToken := url.Values{}
@@ -176,6 +175,7 @@ func TestHandlers(t *testing.T) {
 	validLocat := url.Values{}
 	validLocat.Set("location", "MOS")
 
+	//homeHandler
 	assert.HTTPStatusCode(t, homeHandler, "GET", "https://localhost", nil, 200) //reachable
 
 	//cookieHandler
