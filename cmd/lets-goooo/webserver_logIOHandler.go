@@ -96,7 +96,7 @@ func loginHandler(w http.ResponseWriter, r *http.Request) {
 
 	//search for Cookie holding Userdata
 	oldCookie, _ := r.Cookie("Userdata")
-	if oldCookie == nil || (oldCookie.Value == userdataCookie.Value) {
+	if oldCookie == nil || (oldCookie.Value != userdataCookie.Value) {
 		http.SetCookie(w, userdataCookie)
 	}
 
