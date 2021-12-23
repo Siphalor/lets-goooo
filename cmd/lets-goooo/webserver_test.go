@@ -150,9 +150,12 @@ func TestHandlers(t *testing.T) {
 	cookieSecret = "thisis32bitlongpassphrasetooyay"
 	token.ValidTime = 120
 	token.EncryptionKey = "thisis32bitlongpassphraseimusing"
-	err := journal.ReadLocations("locations.xml")
-	assert.NoError(t, err)
+	journal.Locations = map[string]*journal.Location{
+		"MOS": {Name: "Mosbach", Code: "MOS"},
+		"TST": {Name: "Test", Code: "TST"},
+	}
 	tempDir := t.TempDir()
+	err := error(nil)
 	dataJournal, err = journal.NewWriter(tempDir)
 	defer func() {
 		err := dataJournal.Close()
