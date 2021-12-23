@@ -10,8 +10,11 @@ import (
 	"fmt"
 	"github.com/stretchr/testify/assert"
 	"io/ioutil"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/token"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 	"testing"
@@ -148,12 +151,67 @@ func TestCreateWebserver(t *testing.T) {
 }
 
 func TestHandlers(t *testing.T) {
-	assert.HTTPStatusCode(t, homeHandler, "GET", "https://localhost", nil, 200)   //reachable
-	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", nil, 200) //reachable
-	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400)  //no token -> 400
-	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 400) //no token -> 400
-	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200)     //reachable
-	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 400)  //no location -> 400
+	cookieSecret = "thisis32bitlongpassphrasetooyay"
+	token.ValidTime = 120
+	token.EncryptionKey = "thisis32bitlongpassphraseimusing"
+	journal.Locations = map[string]*journal.Location{
+		"MOS": {Name: "Mosbach", Code: "MOS"},
+		"TST": {Name: "Test", Code: "TST"},
+	}
+	tempDir := t.TempDir()
+	err := error(nil)
+	dataJournal, err = journal.NewWriter(tempDir)
+	defer func() {
+		err := dataJournal.Close()
+		assert.NoError(t, err)
+	}()
+	journal.FileCreationPermissions = 0777
+
+	//different get parameters
+	invalToken := url.Values{}
+	invalToken.Set("token", "12345")
+
+	validToken := url.Values{}
+	toke, err := token.CreateToken("MOS")
+	assert.NoError(t, err)
+	validToken.Set("token", toke)
+
+	invalLocat := url.Values{}
+	invalLocat.Set("location", "this location does not exist")
+
+	validLocat := url.Values{}
+	validLocat.Set("location", "MOS")
+
+	//homeHandler
+	assert.HTTPStatusCode(t, homeHandler, "GET", "https://localhost", nil, 200) //reachable
+
+	//cookieHandler
+	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", nil, 200)        //reachable
+	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", invalToken, 400) // redirecting with wrong token
+	assert.HTTPStatusCode(t, cookieHandler, "GET", "https://localhost", validToken, 200) // redirecting with wrong token
+
+	//loginHandler
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", nil, 400)        //no token -> 400
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", invalToken, 400) //wrong token -> 400
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", validToken, 302) //correct token + not logged in -> log in + redirect to home
+	assert.HTTPStatusCode(t, loginHandler, "GET", "https://localhost", validToken, 400) //correct token + already logged in -> already at location -> cant log in -> 400
+
+	//logoutHandler
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", nil, 400)        //no token -> 400
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", invalToken, 400) //wrong token -> 400
+	assert.HTTPStatusCode(t, logoutHandler, "GET", "https://localhost", validToken, 400) //correct token + no cookie -> 400
+
+	//qrHandler
+	assert.HTTPStatusCode(t, qrHandler, "GET", "https://localhost", nil, 200) //reachable
+
+	//qrPngHandler
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", nil, 400)        //no location -> 400
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", invalLocat, 400) //no existing location -> 400
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", validLocat, 200) // existing location -> 200
+	//breaking token generation
+	token.EncryptionKey = "thisisno32bitlongpassphrase"
+	assert.HTTPStatusCode(t, qrPngHandler, "GET", "https://localhost", validLocat, 400) // cant generate QRCode -> 400
+	token.EncryptionKey = "thisis32bitlongpassphraseimusing"
 }
 
 func TestRunWebservers(t *testing.T) {
@@ -162,6 +220,11 @@ func TestRunWebservers(t *testing.T) {
 	}
 	//Turn of ssl check, to avoid self-signed certificates error
 	client := &http.Client{Transport: &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}}}
+
+	go func() {
+		err := RunWebservers(442, 442)
+		assert.Error(t, err)
+	}()
 
 	go func() {
 		err := RunWebservers(443, 4443)
