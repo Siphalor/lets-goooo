@@ -44,6 +44,7 @@ func TestNewWriter(t *testing.T) {
 	_ = os.Remove(GetCurrentJournalPath(tempDir))
 	_ = os.Mkdir(GetCurrentJournalPath(tempDir), 0777)
 	writer, err = NewWriter(tempDir)
+	defer func() { require.NoError(t, writer.Close()) }()
 	assert.Error(t, err, "writer creation should fail if no output file can be created")
 }
 
@@ -58,6 +59,7 @@ func TestNewWriter_existingJournal(t *testing.T) {
 	_ = file.Close()
 
 	writer, err := NewWriter(tempDir)
+	defer func() { require.NoError(t, writer.Close()) }()
 	require.NoError(t, err, "failed to read existing data")
 	assert.Equal(t, map[string]*Location{"nPQeHgKWuAdyhGh6NPteN7LuDLg=": nil}, writer.knownUsers)
 }
@@ -110,6 +112,7 @@ func TestWriter_UpdateOutput(t *testing.T) {
 	t.Parallel()
 	tempDir := t.TempDir()
 	writer := Writer{outputLock: sync.Mutex{}, directory: tempDir}
+	defer func() { require.NoError(t, writer.Close()) }()
 
 	if assert.NoError(t, writer.UpdateOutput(), "failed to run update output") {
 		file, ok := writer.output.(*os.File)
@@ -153,6 +156,7 @@ func TestUpdateOutput_complete(t *testing.T) {
 		outputLock: sync.Mutex{},
 		directory:  tempDir,
 	}
+	defer func() { require.NoError(t, writer.Close()) }()
 	user := User{Name: "Tester", Address: "Teststadt"}
 	location := Location{Name: "Hauptstadt", Code: "HST"}
 	require.NoError(t, writer.WriteEventUser(&user, &location, LOGIN), "failed to write user event")
@@ -197,6 +201,7 @@ func TestWriter_writeLine(t *testing.T) {
 		outputLock: sync.Mutex{},
 		output:     buffer,
 	}
+	defer func() { require.NoError(t, writer.Close()) }()
 	if assert.NoError(t, writer.writeLine("test"), "valid write line failed") {
 		assert.Equal(t, "test\n", buffer.String())
 	}
@@ -214,6 +219,7 @@ func TestWriter_WriteUserIfUnknown(t *testing.T) {
 		outputLock: sync.Mutex{},
 		output:     buffer,
 	}
+	defer func() { require.NoError(t, writer.Close()) }()
 
 	user := User{Name: "Tester", Address: "Addr"}
 	hash := util.Base64Encode(user.Hash())
@@ -252,6 +258,7 @@ func TestWriter_WriteEventUserHash(t *testing.T) {
 		outputLock: sync.Mutex{},
 		output:     buffer,
 	}
+	defer func() { require.NoError(t, writer.Close()) }()
 	writer.knownUsers["hash1"] = nil
 	writer.knownUsers["hash2"] = nil
 	data := []struct {
@@ -294,6 +301,7 @@ func TestWriter_WriteEventUser(t *testing.T) {
 		outputLock: sync.Mutex{},
 		output:     &buffer,
 	}
+	defer func() { require.NoError(t, writer.Close()) }()
 	user1 := User{Name: "Tester", Address: "TAddr"}
 	hash1 := util.Base64Encode(user1.Hash())
 	user2 := User{Name: "", Address: ""}
