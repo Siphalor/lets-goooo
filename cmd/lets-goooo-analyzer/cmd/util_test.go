@@ -1,9 +1,13 @@
+// Part of the Let's Goooo project
+// Copyright 2021; matriculation numbers: 1103207, 3106445, 4485500
+// Let's goooo get this over together
+
 package cmd
 
 import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"lehre.mosbach.dhbw.de/lets-goooo/v2/pkg/journal"
+	"lehre.mosbach.dhbw.de/lets-goooo/v2/internal/journal"
 	"testing"
 )
 

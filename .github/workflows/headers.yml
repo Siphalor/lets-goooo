@@ -1,0 +1,24 @@
+on:
+  push
+
+name: Update (license) headers
+
+jobs:
+  update-headers:
+    runs-on: ubuntu-latest
+    steps: 
+      - name: Install Go
+        if: success()
+        uses: actions/setup-go@v2
+        with:
+          go-version: 1.17.x
+      - name: Install go-license
+        run: go install github.com/palantir/go-license@latest
+      - name: Checkout code
+        uses: actions/checkout@v2
+      - name: Update headers
+        run: find . -name *.go | xargs go-license --config=license.yml
+      - name: Commit changes
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Update file headers
