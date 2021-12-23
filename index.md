@@ -111,30 +111,30 @@ Im Fall der Subcommands wird zusätzlich zu einem möglichen Fehler noch der vom
 
 Hilfetexte für alle Programme und Unterbefehle sind mittels der Flag `--help` anzeigbar.
 
-## Token & QrCode {#sec:architecture-tokens}
+## Token & QR-Code {#sec:architecture-tokens}
 
-Die Generation des Token nutzt das übergebene Kürzel des Standortes und die aktuelle Unix-Zeit, gerundet auf die Gültigkeitsdauer. 
+Die Generation des Tokens nutzt das übergebene Kürzel des Standortes und die aktuelle Unix-Zeit, gerundet auf die Gültigkeitsdauer. 
 Dies wird mit einem Doppelpunkt zu einem String von 16 Zeichen kombiniert, welcher an die Verschlüsselungsmethode übergeben wird.
-Diese nutzt AES um den String, mit dem per Startparamter übergebenen Schlüssel, zu verschlüsseln. 
-Dadurch hat man einen nicht lesbaren Token, welcher Standort spezifisch ist und zugleich die Zeit des Aufrufes enthällt.
-Zur internen Nutzung ist desweiteren eine Methode zum entschlüsseln implementiert. 
-Diese wird unteranderem von der Funktion Validate genutzt, um einen Token auf seine aktualität zu prüfen und den Standort zurückzugeben.
+Diese nutzt AES um den String, mit dem per Startparameter übergebenen Schlüssel, zu verschlüsseln. 
+Dadurch hat man einen nicht lesbaren Token, welcher Standort spezifisch ist und zugleich die Zeit des Aufrufs enthält.
+Zur internen Nutzung ist des Weiteren eine Methode zum Entschlüsseln implementiert. 
+Diese wird unter anderem von der Funktion `Validate` genutzt, um einen Token auf seine Aktualität zu prüfen und den Standort zurückzugeben.
 
-GetQrCode lässt zunächst einen Token erstellen und erstellt einen QrCode für den String aus der Startparameter URL und dem Token.
-Dieser wird zurück gegeben als Byte Array.
+`GetQrCode` lässt zunächst einen Token erstellen und erstellt einen QR-Code für den String aus der Startparameter URL und dem Token.
+Dieser wird zurückgegeben als Byte Array.
 
 ## Webserver
 
 ### Aufbau
 
-Um ein Webserver zu erstellen muss die Methode CreateWebserver aufgerufen werden.
+Um einen Webserver zu erstellen, muss die Methode `CreateWebserver` aufgerufen werden.
 Diese übernimmt als Parameter den `Port` als `uint` und ein `map` mit `Handlern`.
-Die Rückgabewerte sind der startbereite `Server` und eine `destroy() Funktion` mit der
+Die Rückgabewerte sind der startbereite `Server` und eine `destroy`-Funktion, mit der
 man den Server schließen kann.
 
-Den Server ist mit RunWebserver(server) als https Server zu starten. 
+Den Server ist mit `RunWebserver(server)` als HTTPS-Server zu starten. 
 
-RunWebservers baut den QRCodeWebserver und den LogIOServer auf. Hierfür sind 
+`RunWebservers` baut den QR-Code-Webserver und den Login/Logout-Server auf. Hierfür sind 
 zwei verschiedene Ports zu übergeben.
 
 Damit die Tests für den Webserver korrekt laufen, muss die Umgebungsvariable `webitesti` gesetzt werden.
@@ -156,21 +156,21 @@ Dieses Verhalten konnten wir leider nicht reproduzieren.
 
 ### Handling
 
-#### QRCode Server
+#### QR-Code-Server
 
-Der QrCode Server benutzt 3 Handler, wobei der `homeHandler` eine default Website erzeugt.
-Im Weiteren gibt es den `qrPngHandler`, welcher für einen über den Get-Parameter location
-übergebenen Ort ein temporären QRCode erzeugt. Diesen schreibt er in den ResponseWriter.
-Der `qrPngHandler` wird vom `qrHandler` genutzt um den QRCode in das Template für die
-QRCode Ausgabe einzubinden.
+Der QR-Code-Server benutzt drei Handler, wobei der `homeHandler` eine Standard-Website erzeugt.
+Im Weiteren gibt es den `qrPngHandler`, welcher für einen über den Query-Parameter `location`
+übergebenen Ort einen temporären QR-Code erzeugt. Diesen schreibt er in den `ResponseWriter`.
+Der `qrPngHandler` wird vom `qrHandler` genutzt, um den QR-Code in das Template für die
+QR-Code-Ausgabe einzubinden.
 
 #### Login/Logout Server
 
-Der LogIO Server besitzt auch 3 Handler. Hierbei finden im `loginHandler` das Login und 
-`logoutHandler` das Logout statt. Dabei werden Token und Cookie auf Gekültigkeit überprüft,
-bevor man sich an-/abmelden kann.
+Der Login/Logout-Server besitzt auch drei Handler. Hierbei finden im `loginHandler` das Login und 
+`logoutHandler` das Logout statt. Dabei werden Token und Cookie auf Gültigkeit überprüft,
+bevor man sich an- und abmelden kann.
 
-Der `cookieHandler` liest den Cookie des Nutzers aus (sofern vorhanden) und leitet wiefolgt 
+Der `cookieHandler` liest den Cookie des Nutzers aus (sofern vorhanden) und leitet wie folgt 
 an die anderen Handler weiter:
 
 ```
@@ -184,8 +184,8 @@ an die anderen Handler weiter:
 ### Cookie {#sec:architecture-cookies}
 
 Die Anmeldedaten eines Nutzers werden bei der ersten Anmeldung als Cookie
-im Browser abgespeichert. Hierfür werden Name und Addresse zusammengefasst
-und `:` getrennt erneut mit einem Secret gehashed abgespeichert
+im Browser abgespeichert. Hierfür werden Name und Adresse zusammengefasst
+und `:` getrennt erneut mit einem Secret gehasht abgespeichert.
 
 ```
 COOKIE=DATA:HASH
@@ -194,16 +194,16 @@ HASH=base64(hash(DATA  \t  SECRET))
 ```
 
 Wenn sich ein Nutzer anmeldet, wird der Cookie, sofern vorhanden, ausgelesen
-und ins in die Anmeldung voreingegeben. Hierbei wird überprüft, dass die Daten
-mit den gehasheden Daten übereinstimmen. Das Secret welches zum hashen genutzt
-wir über ein Flag beim Start übergeben. [@sec:flags-webserver]
+und in die Anmeldung voreingegeben. Hierbei wird überprüft, dass die Daten
+mit den gehashten Daten übereinstimmen. Das Secret welches zum Hashen genutzt
+wird, wird über eine Flag beim Start übergeben. [@sec:flags-webserver]
 
 
 # Betriebsdokumentation
 
 ## Konfiguration der Orte {#sec:usage-locations}
 
-Die Orte werden aus einer XML Datein übernommen, welche nach dem folgenden Schema aufgebaut ist.
+Die Orte werden aus einer XML Dateien übernommen, welche nach dem folgenden Schema aufgebaut ist.
 
 ```XML
 <locations>
@@ -212,7 +212,7 @@ Die Orte werden aus einer XML Datein übernommen, welche nach dem folgenden Sche
 </locations>
 ```
 
-Um einen neuen Ort hinzuzufügen kann lediglich in der XML Datei ein neuer location Tag, mit dem Namen und einem eindeutigem dreistelligem Code, eingefügt werden.
+Um einen neuen Ort hinzuzufügen, kann lediglich in der XML-Datei einem neuen `<location>`-Tag, mit dem Namen und einem eindeutigem dreistelligem Code, eingefügt werden.
 
 ## Analyzer
 
@@ -241,7 +241,7 @@ Beim Filtern wird die Groß- und Kleinschreibung ignoriert. Wenn beide Filter an
 
 Mit dem Subcommand **`show-person`** kann eine Aufenthaltsliste für eine Person angegeben werden.
 Für die Auswahl einer Person stehen die Filter aus [@sec:usage-analyzer-general-filters] zur Verfügung.
-Als *positional argument* ist der Pfad zum untersuchenden Journal anzugegeben.
+Als *positional argument* ist der Pfad zum untersuchenden Journal anzugeben.
 
 Beim Ausführen wird eine Liste der Orte und Uhrzeiten für die Person angegeben.
 
@@ -258,7 +258,7 @@ Anwesenheitslisten können mit dem Subcommand **`export`** erzeugt werden.
 Als *positional argument* wird der Pfad zur Journal-Datei angegeben.
 
 Mit der Flag `--output` bzw. `-o` kann eine Ausgabedatei spezifiziert werden.
-Falls keine Ausgabedatei gesetzt ist wird der Pfad der Ausgabedatei aus dem Journal-Pfad abgeleitet.
+Falls keine Ausgabedatei gesetzt ist, wird der Pfad der Ausgabedatei aus dem Journal-Pfad abgeleitet.
 
 Zusätzlich kann mit der Flag `--location` bzw. `--loc` nach einem Ort gefiltert werden.
 Die Angabe kann hierbei durch den Anzeigenamen oder durch den internen Ortscode erfolgen.
@@ -296,10 +296,10 @@ Im Folgenden sind auch hierfür die wichtigsten Flags erläutert.
 
 Analog zum Analyzer in [@sec:usage-analyzer-general-locations].
 
-### Web-Server
+### Webserver
 
-Die Ports für die Web-Server können mit `--frontend-port` bzw. `--backend-port` festgelegt werden.
-Dabei läuft der Frontend-Server standardweise auf Port 4443 und das Backend auf Port 443.
+Die Ports für die Webserver können mit `--frontend-port` bzw. `--backend-port` festgelegt werden.
+Dabei läuft der Frontend-Server standardmäßig auf Port 4443 und das Backend auf Port 443.
 
 Die entsprechenden TLS-Zertifikate lassen sich mit `--cert-file` und `--key-file` angeben,
 standardmäßig werden die mitgelieferten selbst ausgestellten Zertifikate verwendet (`certification`-Ordner).
@@ -325,21 +325,21 @@ Weiterhin kann mit `--journal-file-permissions` die entsprechende Berechtigungsm
 
 # Anwenderdokumentation
 
-Der Anwender bekommt an dem jeweiligen Standort einen zeitlich begrenzten QRCode. ([@fig:view-qrcode])
+Der Anwender bekommt an dem jeweiligen Standort einen zeitlich begrenzten QR-Code. ([@fig:view-qrcode])
 
-![Anwendersicht QRCode Webserver](img/QRCodeMosbach.png){#fig:view-qrcode}
+![Anwendersicht QR-Code Webserver](img/QRCodeMosbach.png){#fig:view-qrcode}
 
-Der QRCode enthält den Link zum LogIO Server. An diesen Link ist das Token als Get Parameter angehängt.
+Der QR-Code enthält den Link zum Login/Logout-Server. An diesen Link ist das Token als Query-Parameter angehängt.
 
-Bei der ersten Anmeldung wird der Anwender auf die Login Seite weitergeleitet und muss Name und 
+Bei der ersten Anmeldung wird der Anwender auf die Login-Seite weitergeleitet und muss Namen und 
 Adresse eingeben. ([@fig:view-firstlogin])
 
 ![Anwendersicht beim ersten Aufruf](img/FirstLogin.png){#fig:view-firstlogin}
 
 Über den Button `Let's Goooo!` findet letztendlich die Anmeldung statt. 
 
-Wenn der angemeldete Anwender erneut einen zum Standort gehörenden QRCode nutzt, 
-kommt er auf die Logout Website. ([@fig:view-logout])
+Wenn der angemeldete Anwender erneut einen zum Standort gehörenden QR-Code nutzt, 
+kommt er auf die Logout-Website. ([@fig:view-logout])
 
 ![Anwendersicht Abmeldung](img/Logout.png){#fig:view-logout}
 
@@ -374,6 +374,6 @@ Ich habe folgende Teile des Projektes entwickelt
 
 Ich habe folgende Teile des Projektes entwickelt:
 
-- Token und QR Code (`internal/token`)
+- Token und QR-Code (`internal/token`)
 - Location-Parsing (`internal/journal/location`)
 - Cookie Validation (`cmd/lets-goooo/cookie`)
