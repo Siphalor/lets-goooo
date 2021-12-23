@@ -24,6 +24,7 @@ func ReadJournal(filepath string) (Journal, error) {
 		return Journal{}, fmt.Errorf("\"%s\" is not a valid file (%w)", filepath, err)
 	}
 	file, err := os.OpenFile(filepath, os.O_RDONLY, 0777)
+	defer func() { _ = file.Close() }()
 	if err != nil {
 		return Journal{}, fmt.Errorf("failed to open journal file %s: %w", filepath, err)
 	}
