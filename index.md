@@ -138,6 +138,16 @@ RunWebservers baut den QRCodeWebserver und den LogIOServer auf. Hierfür sind
 zwei verschiedene Ports zu übergeben.
 
 Damit die Tests für den Webserver korrekt laufen muss die Umgebeungsvariable `webitesti` auf `true` gesetzt werden.
+Wir haben dabei eine laufende Umgebung gehabt mit folgendem Setup:
+
+```
+GOROOT=C:\Program Files\Go #gosetup
+GOPATH=C:\Users\3106335\go #gosetup
+"C:\Program Files\Go\bin\go.exe" test -c -o C:\Users\3106335\AppData\Local\Temp\GoLand_1webserver_test_go.test.exe lehre.mosbach.dhbw.de/lets-goooo/v2/cmd/lets-goooo #gosetup
+"C:\Program Files\Go\bin\go.exe" tool test2json -t C:\Users\3106335\AppData\Local\Temp\GoLand_1webserver_test_go.test.exe -test.v -test.paniconexit0 -test.run ^\QTestExecuteTemplate\E|\QTestCreateWebserver\E|\QTestHandlers\E|\QTestRunWebservers\E$ #gosetup
+```
+
+Dieses Verhalten konnten wir leider nicht reproduzieren.
 
 ### Handling
 
